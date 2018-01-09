@@ -97,10 +97,10 @@ int main(void) {
    printf("Long Int version of the first value of an array in hex:\n");
    printf("%016lX ", long_int[0]);
    printf("\n\n");
-   printf("2e: ********\n");
-   printf("2f: ********\n");
-   printf("2g: ********\n");
-   printf("2h: ********\n");
+   printf("2e: 41 33 54 80 FF 99 01 78 55 20 FE 00 00 00 00 00\n");
+   printf("2f: 4133, 5480 FF99 0178\n");
+   printf("2g: 41335480 FF990178\n");
+   printf("2h: 780199FF80543341\n");
    lineBreak(0, 1);
 
    /* Part 3 : Unsigned Addition of Small Fields */
@@ -159,28 +159,6 @@ int main(void) {
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
  
    lineBreak(0, 0);
-   
 
    return 0;
-
-   //TEST BEGIN
-   printf("\nTEST\n");
-   //TEST END
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
