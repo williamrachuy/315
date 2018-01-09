@@ -1,3 +1,5 @@
+/* CPE 315 LAB 1 */
+
 #include <stdio.h>
 
 void lineBreak(int a, int b) {
@@ -34,8 +36,6 @@ unsigned int arbitraryByteAdd(unsigned char *result, unsigned char *a1, unsigned
    for (i = 0; i < size; i++) {
       result[size-i-1] = addUnsignedChar(a1[size-i-1], a2[size-i-1], carry);
       carry = checkCarry(a1[size-i-1], a2[size-i-1], carry);
-      //printf("TEST: %u 0x%X %u\n", size-i-1, result[size-i-1], carry);
-
    }
 
    return carry;
@@ -58,7 +58,7 @@ int main(void) {
 
    printf("\n");
 
-// Part 1 : Data Types and Sizes
+   /* Part 1 : Data Types and Sizes */
    printf("Part 1: Data Types and Their Sizes\n");
    lineBreak(0, 0);
    printf("Byte Size: %u\n",      sizeof(unsigned char));
@@ -67,7 +67,7 @@ int main(void) {
    printf("Long Integer Size: %u\n",    sizeof(long int));
    lineBreak(0, 1);
 
-// Part 2 : Byte Ordering
+   /* Part 2 : Byte Ordering */
    short_int = bytestring;
    just_int = bytestring;
    long_int = bytestring;
@@ -103,7 +103,7 @@ int main(void) {
    printf("2h: ********\n");
    lineBreak(0, 1);
 
-// Part 3 : Unsigned Addition of Small Fields
+   /* Part 3 : Unsigned Addition of Small Fields */
    printf("Part 3: Unsigned Addition of Small Fields\n");
    lineBreak(0, 0);
    printf("0x20 + 0x35 = 0x%02X\n", addUnsignedChar(0x20, 0x35, 0x00));
@@ -112,7 +112,7 @@ int main(void) {
    printf("0xFF + 0x01 = 0x%02X\n", addUnsignedChar(0xFF, 0x01, 0x00));
    lineBreak(0, 1);
 
-// Part 4 : Detecting a Carry Condition
+   /* Part 4 : Detecting a Carry Condition */
    printf("Part 4: Detecting a Carry Condition\n");
    lineBreak(0, 0);
    printf("0x20 + 0x35 Carry = %u\n", checkCarry(0x20, 0x35, 0x00));
@@ -121,7 +121,7 @@ int main(void) {
    printf("0xFF + 0x01 Carry = %u\n", checkCarry(0xFF, 0x01, 0x00));
    lineBreak(0, 1);
 
-// Part 5 : Signed Addition and Overflow
+   /* Part 5 : Signed Addition and Overflow */
    printf("Part 5: Signed Addition and Overflow\n");
    lineBreak(0, 0);
    printf("0x20 + 0x35 Overflow = %u\n", checkOverflow(0x20, 0x35));
@@ -130,7 +130,7 @@ int main(void) {
    printf("0xFF + 0x01 Overflow = %u\n", checkOverflow(0xFF, 0x01));
    lineBreak(0, 1); 
 
-// Part 6 : Extended Arithmetic
+   /* Part 6 : Extended Arithmetic */
    printf("Performing Extended Field Arithmetic\n");
    lineBreak(0, 0);
    printf("6a)\n   ");
@@ -150,7 +150,6 @@ int main(void) {
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_c[i]);
    printf("\n+  ");
-
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_d[i]);
    printf("\n\n=  ");
