@@ -1,4 +1,6 @@
-/* CPE 315 LAB 1 */
+/* CPE 315 LAB 1                                */
+/* Coded by Anthony Epshteyn and William Rachuy */
+/* January 8, 2018                              */
 
 #include <stdio.h>
 
