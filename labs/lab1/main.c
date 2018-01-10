@@ -78,9 +78,9 @@ int main(void) {
    lineBreak(0, 0);
    
    // No casting
-   printf("Byte values of entire array in hex:\n");
+   printf("Byte values of entire array in hex:\n"); //decrement instead
    for (i = 0; i < 16; i++)
-      printf("%02X ", bytestring[i]);
+      printf("%02X ", bytestring[15-i]);
    printf("\n\n");
 
    // Cast as "short int"
@@ -102,7 +102,7 @@ int main(void) {
    printf("2e: 41 33 54 80 FF 99 01 78 55 20 FE 00 00 00 00 00\n");
    printf("2f: 4133, 5480 FF99 0178\n");
    printf("2g: 41335480 FF990178\n");
-   printf("2h: 780199FF80543341\n");
+   printf("2h: 41335480FF990178\n"); //reverse order
    lineBreak(0, 1);
 
    /* Part 3 : Unsigned Addition of Small Fields */
