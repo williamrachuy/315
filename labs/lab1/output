@@ -10,7 +10,7 @@ Long Integer Size: 8
 Part 2: Byte Ordering
 ========================
 Byte values of entire array in hex:
-41 33 54 80 FF 99 01 78 55 20 FE EE 00 00 00 00 
+00 00 00 00 EE FE 20 55 78 01 99 FF 80 54 33 41 
 
 Short Int versions of the first four values of an array in hex:
 3341 8054 99FF 7801 
@@ -24,7 +24,7 @@ Long Int version of the first value of an array in hex:
 2e: 41 33 54 80 FF 99 01 78 55 20 FE 00 00 00 00 00
 2f: 4133, 5480 FF99 0178
 2g: 41335480 FF990178
-2h: 780199FF80543341
+2h: 41335480FF990178
 ========================
 
 Part 3: Unsigned Addition of Small Fields
