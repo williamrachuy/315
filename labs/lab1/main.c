@@ -80,7 +80,7 @@ int main(void) {
    // No casting
    printf("Byte values of entire array in hex:\n");
    for (i = 0; i < 16; i++)
-      printf("%02X ", bytestring[15-i]);
+      printf("%02X ", bytestring[i]);
    printf("\n\n");
 
    // Cast as "short int"
