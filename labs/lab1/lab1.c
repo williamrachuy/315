@@ -189,7 +189,6 @@ int main(void) {
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_r[i]);
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
- 
    lineBreak(1);
 
    return 0;
