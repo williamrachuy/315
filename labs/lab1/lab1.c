@@ -4,11 +4,11 @@
 
 #include <stdio.h>
 
-void lineBreak(int a, int b) {
-   int i;
+void lineBreak(unsigned int n) {
+   unsigned int i;
 
    printf("========================\n");
-   for (i = 0; i < b; i++)
+   for (i = 0; i < n; i++)
       printf("\n");
 }
 
