@@ -1,9 +1,17 @@
-/* CPE 315 LAB 1                                */
-/* Coded by Anthony Epshteyn and William Rachuy */
-/* January 8, 2018                              */
+/******************************************************************************
+ *
+ * CPE 315 LAB 1
+ * Coded by Anthony Epshteyn and William Rachuy
+ * January 12, 2018
+ *
+ *****************************************************************************/
 
 #include <stdio.h>
 
+/* lineBreak prints a string of "equals" characters in order to increase
+ * readability and retain formatting continuity. Additionally, the function
+ * argument will print n amount of newlines after the string seperator.
+ */
 void lineBreak(unsigned int n) {
    unsigned int i;
 
@@ -12,10 +20,18 @@ void lineBreak(unsigned int n) {
       printf("\n");
 }
 
+/* addUnsighedChar is a simple addition operation that adds two unsigned char
+ * values and a carry value. This function only returns the value of the sum.
+ */
 unsigned char addUnsignedChar(unsigned char a, unsigned char b, unsigned int c) {
    return a + b + c;
 }
 
+/* checkCarry takes in two unsigned chars and a single unsigned int carry value
+ * and checks the condition that the sum of the three values is less than the
+ * first input value. This function returns a 1 if a carry is detected and a 0
+ * if a carry was not detected.
+ */
 unsigned int checkCarry(unsigned char a, unsigned char b, unsigned int c) {
    if ((unsigned char)(a + b + c) < a)
       return 1;
@@ -23,6 +39,11 @@ unsigned int checkCarry(unsigned char a, unsigned char b, unsigned int c) {
       return 0;
 }
 
+/* checkOverflow takes as input two unsigned chars and uses two conditions to
+ * detect if an overflow has occurred after adding the two values. An overflow
+ * will  be detected if the sign bits of both values are the same, and if the
+ * sign bit of their sums is different.
+ */
 unsigned int checkOverflow(unsigned char a, unsigned char b) {
    if ((a >> 7 == b >> 7) && ((unsigned char)(a + b) >> 7 != a >> 7))
       return 1;
@@ -30,7 +51,13 @@ unsigned int checkOverflow(unsigned char a, unsigned char b) {
       return 0;
 }
 
-unsigned int arbitraryByteAdd(unsigned char *result, unsigned char *a1, unsigned char *a2, int size, unsigned int carry_in) {
+/* arbitraryByteAdd takes as input a result array pointer, two arrays of size
+ * n, the array size n, and a carry in value. This function will add the
+ * values of the two arrays at each index i in decrementing order. The
+ * resulting values are then stored in result.
+ */
+unsigned int arbitraryByteAdd(unsigned char *result, unsigned char *a1,
+   unsigned char *a2, int size, unsigned int carry_in) {
    unsigned int i, carry = carry_in;
 
    for (i = 0; i < size; i++) {
@@ -75,7 +102,7 @@ int main(void) {
    printf("Part 2: Byte Ordering\n");
    lineBreak(0);
    
-   // No casting
+   // Without casting
    printf("Byte values of entire array in hex:\n");
    for (i = 0; i < 16; i++)
       printf("%02X ", bytestring[i]);
@@ -131,8 +158,10 @@ int main(void) {
    lineBreak(1); 
 
    /* Part 6 : Extended Arithmetic */
-   printf("Performing Extended Field Arithmetic\n");
+   printf("Part 6: Performing Extended Field Arithmetic\n");
    lineBreak(0);
+
+   // Part 6a
    printf("6a)\n   ");
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_a[i]);
@@ -146,6 +175,7 @@ int main(void) {
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
    printf("\n");
 
+   // Part 6b
    printf("6b)\n   ");
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_c[i]);
@@ -158,7 +188,7 @@ int main(void) {
       printf("0x%02X ", bytestring_r[i]);
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
  
-   lineBreak(0);
+   lineBreak(1);
 
    return 0;
 }
