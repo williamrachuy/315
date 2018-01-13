@@ -51,7 +51,7 @@ Part 5: Signed Addition and Overflow
 0xFF + 0x01 Overflow = 0
 ========================
 
-Performing Extended Field Arithmetic
+Part 6: Performing Extended Field Arithmetic
 ========================
 6a)
    0x44 0x00 0x00 0x00 0x01 
@@ -69,3 +69,4 @@ Carry Out = 0
 
 Carry Out = 1
 ========================
+
