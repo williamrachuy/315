@@ -52,12 +52,12 @@ unsigned int checkOverflow(unsigned char a, unsigned char b) {
 }
 
 /* arbitraryByteAdd takes as input a result array pointer, two arrays of size
- * n, the array size n, and a carry in value. This function will add the
- * values of the two arrays at each index i in decrementing order. The
+ * n, the array size n, and a carry in value. This function will add the values
+ * of the two arrays at each index i in decrementing order. The
  * resulting values are then stored in result.
  */
 unsigned int arbitraryByteAdd(unsigned char *result, unsigned char *a1,
-   unsigned char *a2, int size, unsigned int carry_in) {
+      unsigned char *a2, int size, unsigned int carry_in) {
    unsigned int i, carry = carry_in;
 
    for (i = 0; i < size; i++) {
@@ -169,7 +169,8 @@ int main(void) {
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_b[i]);
    printf("\n\n=  ");
-   bytestring_r_carry = arbitraryByteAdd(bytestring_r, bytestring_a, bytestring_b, size, 0x00);
+   bytestring_r_carry = arbitraryByteAdd(bytestring_r, bytestring_a,
+         bytestring_b, size, 0x00);
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_r[i]);
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
@@ -183,7 +184,8 @@ int main(void) {
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_d[i]);
    printf("\n\n=  ");
-   bytestring_r_carry = arbitraryByteAdd(bytestring_r, bytestring_c, bytestring_d, size, 0x00);
+   bytestring_r_carry = arbitraryByteAdd(bytestring_r, bytestring_c,
+         bytestring_d, size, 0x00);
    for (i = 0; i < size; i++)
       printf("0x%02X ", bytestring_r[i]);
    printf("\n\nCarry Out = %u\n", bytestring_r_carry);
