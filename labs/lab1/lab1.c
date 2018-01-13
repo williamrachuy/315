@@ -15,7 +15,7 @@
 void lineBreak(unsigned int n) {
    unsigned int i;
 
-   printf("========================\n");
+   printf("===============================================================\n");
    for (i = 0; i < n; i++)
       printf("\n");
 }
@@ -92,7 +92,7 @@ int main(void) {
    printf("Short Int Size: %u\n", sizeof(short int));
    printf("Integer Size: %u\n",      sizeof(int));
    printf("Long Integer Size: %u\n",    sizeof(long int));
-   lineBreak(1);
+   lineBreak(2);
 
    /* Part 2 : Byte Ordering */
    short_int = bytestring;
@@ -128,7 +128,7 @@ int main(void) {
    printf("2f: 4133, 5480 FF99 0178\n");
    printf("2g: 41335480 FF990178\n");
    printf("2h: 41335480FF990178\n");
-   lineBreak(1);
+   lineBreak(2);
 
    /* Part 3 : Unsigned Addition of Small Fields */
    printf("Part 3: Unsigned Addition of Small Fields\n");
@@ -137,7 +137,7 @@ int main(void) {
    printf("0x80 + 0x7F = 0x%02X\n", addUnsignedChar(0x80, 0x7F, 0x00));
    printf("0x80 + 0xFF = 0x%02X\n", addUnsignedChar(0x80, 0xFF, 0x00));
    printf("0xFF + 0x01 = 0x%02X\n", addUnsignedChar(0xFF, 0x01, 0x00));
-   lineBreak(1);
+   lineBreak(2);
 
    /* Part 4 : Detecting a Carry Condition */
    printf("Part 4: Detecting a Carry Condition\n");
@@ -146,7 +146,7 @@ int main(void) {
    printf("0x80 + 0x7F Carry = %u\n", checkCarry(0x80, 0x7F, 0x00));
    printf("0x80 + 0xFF Carry = %u\n", checkCarry(0x80, 0xFF, 0x00));
    printf("0xFF + 0x01 Carry = %u\n", checkCarry(0xFF, 0x01, 0x00));
-   lineBreak(1);
+   lineBreak(2);
 
    /* Part 5 : Signed Addition and Overflow */
    printf("Part 5: Signed Addition and Overflow\n");
@@ -155,7 +155,7 @@ int main(void) {
    printf("0x80 + 0x7F Overflow = %u\n", checkOverflow(0x80, 0x7F));
    printf("0x80 + 0xFF Overflow = %u\n", checkOverflow(0x80, 0xFF));
    printf("0xFF + 0x01 Overflow = %u\n", checkOverflow(0xFF, 0x01));
-   lineBreak(1); 
+   lineBreak(2); 
 
    /* Part 6 : Extended Arithmetic */
    printf("Part 6: Performing Extended Field Arithmetic\n");
