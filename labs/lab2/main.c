@@ -38,7 +38,7 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
    return fltStruct;
 }
 
-float normFloat(intFloat *fltStruct) {
+float packFloat(intFloat *fltStruct) {
    unsigned int flt = 0;
 
    flt = (fltStruct->sign << shftSign) |
@@ -49,23 +49,23 @@ float normFloat(intFloat *fltStruct) {
 }
 
 int main(void) {
-   unsigned int testInt;
-   float flt;
+   unsigned int fltAsInt;
+   float fltIn, fltTemp;
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .mantissa = 0};
 
-   testInt = fltConv(6.25);
-   printf("0x%08X\n", testInt);
+   printf("Enter float: ");
+   scanf("%g", &fltIn);
+
+   fltAsInt = fltConv(fltIn);
+   printf("Float as IEEE754: 0x%08X\n", fltAsInt);
    
-   testInt = uMultiply(0x0025, 0x0051);
-   printf("0x%08X\n", testInt);
+   extFloat(&myFloatStruct, fltIn);
 
-   extFloat(&myFloatStruct, 6.25);
+   printf("Sign: 0x%08X Exponent: 0x%08X Mantissa: 0x%08X\n",
+         myFloatStruct.sign, myFloatStruct.exponent, myFloatStruct.mantissa);
 
-   printf("0x%08X 0x%08X 0x%08X\n", myFloatStruct.sign, myFloatStruct.exponent,
-         myFloatStruct.mantissa);
-
-   flt = normFloat(&myFloatStruct);
-   printf("%g\n", flt);
+   fltTemp = packFloat(&myFloatStruct);
+   printf("Packed float: %g\n", fltTemp);
 
    return 0;
 }
