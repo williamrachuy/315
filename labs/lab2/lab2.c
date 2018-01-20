@@ -9,14 +9,14 @@ unsigned int maskSign     = 0x80000000,
 
 typedef struct {
    unsigned int sign;
-   unsigned int exponent;
-   unsigned int mantissa;
+   int exponent;
+   int mantissa;
 } intFloat;
-/*
-unsigned int fltConv(float flt) {
+
+unsigned int fltConv32(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
 }
-*/
+
 unsigned int uMultiply(unsigned int a, unsigned int b) {
    unsigned int i, product = 0;
 
@@ -28,6 +28,7 @@ unsigned int uMultiply(unsigned int a, unsigned int b) {
    return product;
 }
 
+/*
 intFloat *extFloat(intFloat *fltStruct, float flt) {
    unsigned int fltConverted = (unsigned int)*(unsigned int *)&flt;
 
@@ -37,7 +38,24 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
 
    return fltStruct;
 }
+*/
 
+intFloat *extFloat(intFloat *fltStruct, float flt) {
+   unsigned int fltConv = (unsigned int)*(unsigned int *)&flt;
+
+   // add test for mantissa = 0?
+
+   fltStruct->sign     = fltConv & 0x80000000;
+   fltStruct->exponent = ((fltConv >> 23) & 0x000000FF) - 127;
+   fltStruct->mantissa = ((fltConv << 7) & 0x3FFFFF80) | 0x40000000;
+
+   if (fltStruct->sign)
+      fltStruct->mantissa = -fltStruct->mantissa;
+
+   return fltStruct;
+}
+
+/*
 float packFloat(intFloat *fltStruct) {
    unsigned int flt = 0;
 
@@ -47,7 +65,16 @@ float packFloat(intFloat *fltStruct) {
 
    return (float)*(float *)&flt;
 }
+*/
 
+float packFloat(intFloat *fltStruct) {
+   unsigned int fltConv = 0;
+
+   fltConv |= fltStruct->sign & 0x80000000;
+   fltConv |= (fltStruct->exponent + 127) & 
+
+   return (float)*(float *)&fltConv;
+}
 int main(void) {
    unsigned int fltAsInt;
    float fltIn, fltTemp;
@@ -56,7 +83,7 @@ int main(void) {
    printf("Enter float: ");
    scanf("%g", &fltIn);
 
-   fltAsInt = fltConv(fltIn);
+   fltAsInt = fltConv32(fltIn);
    printf("Float as IEEE754: 0x%08X\n", fltAsInt);
    
    extFloat(&myFloatStruct, fltIn);
