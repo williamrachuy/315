@@ -161,7 +161,7 @@ float single_float_add(float a, float b)
 
 	printf("Post-normalize, single_float_add called with a=%.8f, b=%.8f\n", a, b);
 	printf("result.fraction = 0x%08X, result.exponent = 0x%08X (%d)\n\n", result.fraction, result.exponent, result.exponent);
-	
+
 	}
 
 

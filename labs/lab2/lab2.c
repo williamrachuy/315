@@ -23,7 +23,6 @@ unsigned int uMultiply(unsigned int a, unsigned int b) {
 intFloat *extFloat(intFloat *fltStruct, float flt) {
    unsigned int fltConv = (unsigned int)*(unsigned int *)&flt;
 
-   // add test for fraction = 0?
    if (flt == 0) {
       fltStruct->sign     = 0;
       fltStruct->exponent = 0;
@@ -46,7 +45,6 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
 float packFloat(intFloat *fltStruct) {
    unsigned int fltConv = 0;
 
-   fltConv |= fltStruct->sign & 0x80000000;
    fltConv |= ((fltStruct->exponent + 127) << 23) & 0x7F800000;
    if (fltStruct->sign) fltStruct->fraction = -fltStruct->fraction;
    fltConv |= ((fltStruct->fraction & ~0x40000000) >> 7) & 0x007FFFFF;
@@ -93,19 +91,22 @@ float addFloat(float a, float b) {
    intFloat fltStructA, fltStructB, fltStructR;
    int exponentDiff;
 
+   fltStructR->sign = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
    exponentDiff = fltStructA.exponent - fltStructB.exponent;
    if (exponentDiff > 0) scaleFloat(&fltStructB, exponentDiff);
-   if (exponentDiff < 0) scaleFloat(&fltStructA, exponentDiff);
+   if (exponentDiff < 0) scaleFloat(&fltStructA, -exponentDiff);
    fltStructR.fraction =
          (fltStructA.fraction >> 1) + (fltStructB.fraction >> 1);
    fltStructR.exponent = fltStructA.exponent + 1;
    normalizeFloat(&fltStructR);
 
+#ifdef TRACE
    printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
    printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
          fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
+#endif
 
    return packFloat(&fltStructR);
 }
