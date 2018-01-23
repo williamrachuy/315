@@ -35,7 +35,8 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
       fltStruct->sign     = fltConv & 0x80000000;
       fltStruct->exponent = ((fltConv >> 23) & 0x000000FF) - 127;
       fltStruct->fraction = ((fltConv << 7) & 0x3FFFFF80) | 0x40000000;
-      if (fltStruct->sign == 0x80000000) fltStruct->fraction = -fltStruct->fraction;
+      if (fltStruct->sign == 0x80000000)
+         fltStruct->fraction = -fltStruct->fraction;
    }
 
 #ifdef TRACE
@@ -106,6 +107,7 @@ float addFloat(float a, float b) {
    if (exponentDiff < 0) scaleFloat(&fltStructA, -exponentDiff);
    fltStructR.fraction =
          (fltStructA.fraction >> 1) + (fltStructB.fraction >> 1);
+   fltStructR.sign |= fltStructR.fraction & 0x80000000;
    fltStructR.exponent = fltStructA.exponent + 1;
    normalizeFloat(&fltStructR);
 
