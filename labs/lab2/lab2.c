@@ -80,6 +80,15 @@ intFloat *normalizeFloat(intFloat *fltStruct) {
    unsigned int signFlag = (fltStruct->fraction >> 1);
 
    if (fltStruct->fraction == 0) return fltStruct;
+   
+   // Probably need to do different operations depending on whether 
+   // the sign is positive or negative - original solution was for unsigned!
+   //
+   // while the sign bit and bit next to sign bit are the same, shift left
+   // XOR the two bits, if the result is a 0 that means the two bits are the same and 
+   // we need to keep shifting. If the XOR produces a 1 that means the two bits are
+   // different and we have finished normalizing
+   // while (!(((fltStruct->fraction & 0x80000000) ^ ((floatStruct->fraction) << 1) & 0x80000000)))
    while (((fltStruct->fraction ^ signFlag) & 0x40000000) == 0) {
       fltStruct->fraction <<= 1;
       fltStruct->exponent--;
@@ -118,6 +127,37 @@ float addFloat(float a, float b) {
 #endif
 
    return packFloat(&fltStructR);
+}
+
+float singleFloatSubtract(float a, float b){
+   intFloat fltStrA, fltStrB, fltStrR;
+   int exponentDiff;
+   
+   fltStructR.sign     = 0;
+   fltStructR.exponent = 0;
+   fltStructR.fraction = 0;
+   extFloat(&fltStructA, a);
+   extFloat(&fltStructB, b);
+   exponentDiff = fltStructA.exponent - fltStructB.exponent;
+   if (exponentDiff > 0) scaleFloat(&fltStructB, exponentDiff);
+   if (exponentDiff < 0) scaleFloat(&fltStructA, -exponentDiff);
+   
+   fltStrR.fraction = 
+      ((fltStructA.fraction >> 1) - (fltStrB.fraction >> 1));
+      
+   fltStructR.sign |= fltStructR.fraction & 0x80000000;
+   fltStructR.exponent = fltStructA.exponent + 1;
+   normalizeFloat(&fltStructR);
+   
+
+#ifdef TRACE
+   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
+   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
+         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
+#endif
+
+   return packFloat(&fltStructR);   
+   
 }
 
 int main(void) {
