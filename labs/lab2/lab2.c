@@ -1,3 +1,16 @@
+/*******************************************************************************
+ * 
+ *    THIS CODE IS STILL BEING DEVELOPED
+ *
+ *    OUR LAB TEAM IS TAKING ADVANTAGE OF THE EXTENSION THAT WAS GIVEN TO
+ *    THE CLASS TODAY. PLEASE EMAIL ME AT wrachuy@calpoly.edu IF THERE IS
+ *    ANY ISSUE WITH THIS SUBMISSION. THE LAB REPORT WILL BE SUBMITTED
+ *    BEFORE THE EXTENDED DUE DATE.
+ *
+ *    Coded by Cameron Simpson and William Rachuy
+ *
+ ******************************************************************************/ 
+
 #include <stdio.h>
 #define TRACE
 
@@ -6,6 +19,18 @@ typedef struct {
    int exponent;
    int fraction;
 } intFloat;
+
+void linePart(unsigned int n) {
+   printf("PART %u ========================================================\n", n);
+}
+
+void lineBreak(unsigned int n) {
+   unsigned int i;
+
+   printf("===============================================================\n");
+   for (i = 0; i < n; i++)
+      printf("\n");
+}
 
 unsigned int convertFloat(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
@@ -49,7 +74,8 @@ long int sMultiply(int a, int b){
    long int result;
 
    // Store the resultant sign
-   unsigned short int sign = (unsigned short)((0x00000001 & (a >> 31)) ^ (0x00000001 & (b >> 31)));
+   unsigned short int sign =
+      (unsigned short)((0x00000001 & (a >> 31)) ^ (0x00000001 & (b >> 31)));
    //unsigned long int carryDetect;
    //unsigned long int carryAdd;
    
@@ -236,7 +262,11 @@ float fmul(float a, float b){
    
    exponentA = fltStructA.exponent - 127;
    exponentB = fltStructB.exponent - 127;
+<<<<<<< HEAD
    fltStructR.exponent = exponentA + exponentB + 32 + 127;
+=======
+   fltStructR.exponent = exponentA + exponentB + 32;
+>>>>>>> 3e8e7038bce5406e3a95c0c19f1a2d649189bd6f
 
    multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
    
@@ -264,6 +294,27 @@ int main(void) {
    int a = -888, b = 100;
    long int mulRes;
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
+
+   linePart(1);
+   lineBreak(1);
+
+   linePart(2);
+   lineBreak(1);
+
+   linePart(3);
+   lineBreak(1);
+
+   linePart(4);
+   lineBreak(1);
+
+   linePart(5);
+   lineBreak(1);
+
+   linePart(6);
+   lineBreak(1);
+
+   linePart(7);
+   lineBreak(1);
 
    printf("Enter float: ");
    scanf("%g", &fltIn);
