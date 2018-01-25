@@ -1,3 +1,16 @@
+/*******************************************************************************
+ * 
+ *    THIS CODE IS STILL BEING DEVELOPED
+ *
+ *    OUR LAB TEAM IS TAKING ADVANTAGE OF THE EXTENSION THAT WAS GIVEN TO
+ *    THE CLASS TODAY. PLEASE EMAIL ME AT wrachuy@calpoly.edu IF THERE IS
+ *    ANY ISSUE WITH THIS SUBMISSION. THE LAB REPORT WILL BE SUBMITTED
+ *    BEFORE THE EXTENDED DUE DATE.
+ *
+ *    Coded by Cameron Simpson and William Rachuy
+ *
+ ******************************************************************************/ 
+
 #include <stdio.h>
 
 typedef struct {
@@ -5,6 +18,18 @@ typedef struct {
    int exponent;
    int fraction;
 } intFloat;
+
+void linePart(unsigned int n) {
+   printf("PART %u ========================================================\n", n);
+}
+
+void lineBreak(unsigned int n) {
+   unsigned int i;
+
+   printf("===============================================================\n");
+   for (i = 0; i < n; i++)
+      printf("\n");
+}
 
 unsigned int convertFloat(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
@@ -48,7 +73,8 @@ long int sMultiply(int a, int b){
    long int result;
 
    // Store the resultant sign
-   unsigned short int sign = (unsigned short)((0x00000001 & (a >> 31)) ^ (0x00000001 & (b >> 31)));
+   unsigned short int sign =
+      (unsigned short)((0x00000001 & (a >> 31)) ^ (0x00000001 & (b >> 31)));
    //unsigned long int carryDetect;
    //unsigned long int carryAdd;
    
@@ -80,41 +106,6 @@ long int sMultiply(int a, int b){
    if(sign) result *= -1;
    
    return result;
-}
-
-float fmul(float a, float b){
-   intFloat fltStructA, fltStructB, fltStructR;
-   long int multiplyReturn;
-   int exponentA, exponentB;
-
-   fltStructR.sign     = 0;
-   fltStructR.exponent = 0;
-   fltStructR.fraction = 0;
-   extFloat(&fltStructA, a);
-   extFloat(&fltStructB, b);
-   
-   exponentA = fltStructA.exponent - 127;
-   exponentB = fltStructB.exponent - 127;
-   fltStructR.exponent = exponentA + exponentB + 32;
-
-   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
-   
-   if(multiplyReturn < 0){
-      fltStructR.sign = 0x80000000;
-      multiplyReturn *= -1;
-   }
-   
-   fltStructR.fraction = (int)(multiplyReturn >> 32);
-   
-   normalizeFloat(&fltStructR);
-
-#ifdef TRACE
-   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
-   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
-         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
-#endif
-
-   return packFloat(&fltStructR);
 }
 
 intFloat *extFloat(intFloat *fltStruct, float flt) {
@@ -257,12 +248,68 @@ float subtractFloat(float a, float b){
    
 }
 
+float fmul(float a, float b){
+   intFloat fltStructA, fltStructB, fltStructR;
+   long int multiplyReturn;
+   int exponentA, exponentB;
+
+   fltStructR.sign     = 0;
+   fltStructR.exponent = 0;
+   fltStructR.fraction = 0;
+   extFloat(&fltStructA, a);
+   extFloat(&fltStructB, b);
+   
+   exponentA = fltStructA.exponent - 127;
+   exponentB = fltStructB.exponent - 127;
+   fltStructR.exponent = exponentA + exponentB + 32;
+
+   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
+   
+   if(multiplyReturn < 0){
+      fltStructR.sign = 0x80000000;
+      multiplyReturn *= -1;
+   }
+   
+   fltStructR.fraction = (int)(multiplyReturn >> 32);
+   
+   normalizeFloat(&fltStructR);
+
+#ifdef TRACE
+   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
+   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
+         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
+#endif
+
+   return packFloat(&fltStructR);
+}
+
 int main(void) {
    unsigned int fltAsInt;
    float fltIn, fltInA, fltInB, fltTemp;
    int a = -888, b = 100;
    long int mulRes;
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
+
+   linePart(1);
+   lineBreak(1);
+
+   linePart(2);
+   lineBreak(1);
+
+   linePart(3);
+   lineBreak(1);
+
+   linePart(4);
+   lineBreak(1);
+
+   linePart(5);
+   lineBreak(1);
+
+   linePart(6);
+   lineBreak(1);
+
+   linePart(7);
+   lineBreak(1);
 
    printf("Enter float: ");
    scanf("%g", &fltIn);
