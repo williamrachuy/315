@@ -1,4 +1,5 @@
 #include <stdio.h>
+#define TRACE
 
 typedef struct {
    unsigned int sign;
@@ -80,41 +81,6 @@ long int sMultiply(int a, int b){
    if(sign) result *= -1;
    
    return result;
-}
-
-float fmul(float a, float b){
-   intFloat fltStructA, fltStructB, fltStructR;
-   long int multiplyReturn;
-   int exponentA, exponentB;
-
-   fltStructR.sign     = 0;
-   fltStructR.exponent = 0;
-   fltStructR.fraction = 0;
-   extFloat(&fltStructA, a);
-   extFloat(&fltStructB, b);
-   
-   exponentA = fltStructA.exponent - 127;
-   exponentB = fltStructB.exponent - 127;
-   fltStructR.exponent = exponentA + exponentB + 32;
-
-   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
-   
-   if(multiplyReturn < 0){
-      fltStructR.sign = 0x80000000;
-      multiplyReturn *= -1;
-   }
-   
-   fltStructR.fraction = (int)(multiplyReturn >> 32);
-   
-   normalizeFloat(&fltStructR);
-
-#ifdef TRACE
-   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
-   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
-         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
-#endif
-
-   return packFloat(&fltStructR);
 }
 
 intFloat *extFloat(intFloat *fltStruct, float flt) {
@@ -255,6 +221,41 @@ float subtractFloat(float a, float b){
 
    return packFloat(&fltStructR);   
    
+}
+
+float fmul(float a, float b){
+   intFloat fltStructA, fltStructB, fltStructR;
+   long int multiplyReturn;
+   int exponentA, exponentB;
+
+   fltStructR.sign     = 0;
+   fltStructR.exponent = 0;
+   fltStructR.fraction = 0;
+   extFloat(&fltStructA, a);
+   extFloat(&fltStructB, b);
+   
+   exponentA = fltStructA.exponent - 127;
+   exponentB = fltStructB.exponent - 127;
+   fltStructR.exponent = exponentA + exponentB + 32 + 127;
+
+   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
+   
+   if(multiplyReturn < 0){
+      fltStructR.sign = 0x80000000;
+      multiplyReturn *= -1;
+   }
+   
+   fltStructR.fraction = (int)(multiplyReturn >> 32);
+   
+   normalizeFloat(&fltStructR);
+
+#ifdef TRACE
+   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
+   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
+         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
+#endif
+
+   return packFloat(&fltStructR);
 }
 
 int main(void) {
