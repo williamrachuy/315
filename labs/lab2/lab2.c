@@ -12,7 +12,6 @@
  ******************************************************************************/ 
 
 #include <stdio.h>
-#define TRACE
 
 typedef struct {
    unsigned int sign;
@@ -32,8 +31,12 @@ void lineBreak(unsigned int n) {
       printf("\n");
 }
 
-unsigned int convertFloat(float flt) {
+unsigned int convFltTo754(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
+}
+
+float conv754toFlt(unsigned int flt754) {
+   return (float)*(float *)&flt754;
 }
 
 unsigned int uMultiply(unsigned int a, unsigned int b) {
@@ -43,7 +46,7 @@ unsigned int uMultiply(unsigned int a, unsigned int b) {
    
    unsigned int carryDetect;
    unsigned int carryAdd = 0;
-   
+
    product = (unsigned int) a;
    multiplicand = ((unsigned int) b) << 16;
    
@@ -79,7 +82,7 @@ long int sMultiply(int a, int b){
    //unsigned long int carryDetect;
    //unsigned long int carryAdd;
    
-   // Convert to ones compliment
+   // conv to ones compliment
    if(a < 0) a = -a;
    if(b < 0) b = -b;
    
@@ -249,7 +252,7 @@ float subtractFloat(float a, float b){
    
 }
 
-float fmul(float a, float b){
+/*float fmul(float a, float b){
    intFloat fltStructA, fltStructB, fltStructR;
    long int multiplyReturn;
    int exponentA, exponentB;
@@ -287,21 +290,70 @@ float fmul(float a, float b){
 
    return packFloat(&fltStructR);
 }
+*/
+void printPart1(char n, unsigned int a, unsigned int b) {
+   printf("1%c. a=0x%04X, b=0x%04X c=0x%08X\n", n, a, b, uMultiply(a, b));
+}
+
+void printPart2(char n, unsigned int flt754) {
+   float flt = conv754toFlt(flt754);
+   intFloat fltStruct;
+
+   extFloat(&fltStruct, flt);
+   printf("2%c. Test case: 0x%08X\n", n, flt754);
+   printf("  Float: %.6f\n", flt);
+   printf("  Exponent: %d\n", fltStruct.exponent);
+   printf("  Fraction: 0x%08X\n", fltStruct.fraction);
+}
+
+void printPart3(char n, unsigned int flt754) {
+   float flt = conv754toFlt(flt754), fltRet;
+   intFloat fltStruct;
+
+   extFloat(&fltStruct, flt);
+   fltRet = packFloat(&fltStruct);
+   printf("3%c. Test case: 0x%08X\n", n, flt754);
+   printf("  Float: %.6f\n", fltRet);
+}
+
+void printPart4();
+
+void printPart5();
+
+void printPart6();
+
+void printPart7();
 
 int main(void) {
-   unsigned int fltAsInt;
+/*   unsigned int fltAsInt;
    float fltIn, fltInA, fltInB, fltTemp;
    int a = -888, b = 100;
    long int mulRes;
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
 
+   unsigned int a, b;*/
+   printf("\n");
+
    linePart(1);
+   printPart1('a', 0x0001, 0x0001);
+   printPart1('b', 0x0001, 0xFFFF);
+   printPart1('c', 0x8000, 0x0001);
+   printPart1('d', 0x4000, 0x4000);
+   printPart1('e', 0x8000, 0x8000);
    lineBreak(1);
 
    linePart(2);
+   printPart2('a', 0x40C80000);
+   printPart2('b', 0xC3000000);
+   printPart2('c', 0x3E000000);
+   printPart2('d', 0x3EAAAAAB);
    lineBreak(1);
 
    linePart(3);
+   printPart3('a', 0x40C80000);
+   printPart3('b', 0xC3000000);
+   printPart3('c', 0x3E000000);
+   printPart3('d', 0x3EAAAAAB);
    lineBreak(1);
 
    linePart(4);
@@ -316,9 +368,9 @@ int main(void) {
    linePart(7);
    lineBreak(1);
 
-   printf("Enter float: ");
+/*   printf("Enter float: ");
    scanf("%g", &fltIn);
-   fltAsInt = convertFloat(fltIn);
+   fltAsInt = convFloat(fltIn);
    printf("Float as IEEE754: 0x%08X\n", fltAsInt);
    extFloat(&myFloatStruct, fltIn);
    printf("Sign: 0x%08X Exponent: 0x%08X fraction: 0x%08X\n",
@@ -343,6 +395,6 @@ int main(void) {
    
    mulRes = sMultiply(a, b);
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
-
+*/
    return 0;
 }
