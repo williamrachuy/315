@@ -252,7 +252,7 @@ float subtractFloat(float a, float b){
    
 }
 
-/*float fmul(float a, float b){
+float fmul(float a, float b){
    intFloat fltStructA, fltStructB, fltStructR;
    long int multiplyReturn;
    int exponentA, exponentB;
@@ -262,14 +262,9 @@ float subtractFloat(float a, float b){
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+
    
-   exponentA = fltStructA.exponent - 127;
-   exponentB = fltStructB.exponent - 127;
-<<<<<<< HEAD
-   fltStructR.exponent = exponentA + exponentB + 32 + 127;
-=======
-   fltStructR.exponent = exponentA + exponentB + 32;
->>>>>>> 3e8e7038bce5406e3a95c0c19f1a2d649189bd6f
+   fltStructR.exponent = exponentA + exponentB;
 
    multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
    
@@ -290,7 +285,7 @@ float subtractFloat(float a, float b){
 
    return packFloat(&fltStructR);
 }
-*/
+
 void printPart1(char n, unsigned int a, unsigned int b) {
    printf("1%c. a=0x%04X, b=0x%04X c=0x%08X\n", n, a, b, uMultiply(a, b));
 }
