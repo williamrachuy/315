@@ -255,7 +255,6 @@ float subtractFloat(float a, float b){
 float fmul(float a, float b){
    intFloat fltStructA, fltStructB, fltStructR;
    long int multiplyReturn;
-   int exponentA, exponentB;
 
    fltStructR.sign     = 0;
    fltStructR.exponent = 0;
@@ -264,7 +263,7 @@ float fmul(float a, float b){
    extFloat(&fltStructB, b);
 
    
-   fltStructR.exponent = exponentA + exponentB;
+   fltStructR.exponent = fltStructA.exponent + fltStructB.exponent;
 
    multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
    
