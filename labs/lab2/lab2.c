@@ -391,5 +391,7 @@ int main(void) {
    mulRes = sMultiply(a, b);
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
 */
+
+   printf("%f\n", fmul(6.0, 5.0));
    return 0;
 }
