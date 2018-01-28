@@ -31,6 +31,23 @@ void lineBreak(unsigned int n) {
       printf("\n");
 }
 
+int decToBinInt(int);
+int decToBinLong(long);
+
+int decToBinInt(int dec) {
+   if (dec == 0)
+      return 0;
+   else
+      return (dec % 2 + 10 * decToBinInt(dec / 2));
+}
+
+int decToBinLong(long dec) {
+   if (dec == 0)
+      return 0;
+   else
+      return (dec % 2 + 10 * decToBinInt(dec / 2));
+}
+
 unsigned int convFltTo754(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
 }
@@ -97,7 +114,7 @@ long int sMultiply(int a, int b){
          //if(product & 0x8000000000000000)
       }
       
-      product = (product >> 1);
+         product = product >> 1;
    }
    
 #ifdef TRACE
@@ -261,18 +278,19 @@ float fmul(float a, float b){
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+  
+   fltStructR.exponent = fltStructA.exponent + fltStructB.exponent + 1;
 
-   
-   fltStructR.exponent = fltStructA.exponent + fltStructB.exponent;
-
+   printf("0b%d\n", decToBinInt(fltStructA.fraction));
    multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
+   printf("0b%l\n", decToBinLong(multiplyReturn));
    
-   if(multiplyReturn < 0){
+   if(fltStructA.sign ^ fltStructB.sign){
       fltStructR.sign = 0x80000000;
-      multiplyReturn *= -1;
    }
    
    fltStructR.fraction = (int)(multiplyReturn >> 32);
+   printf("0b%d\n", decToBinInt(fltStructR.fraction));
    
    normalizeFloat(&fltStructR);
 
@@ -326,6 +344,8 @@ int main(void) {
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
 
    unsigned int a, b;*/
+   float a, b;
+
    printf("\n");
 
    linePart(1);
@@ -391,6 +411,12 @@ int main(void) {
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
 */
 
-   printf("%f\n", fmul(6.0, 5.0));
+   
+
+   while (1) {
+      scanf("%f%f", &a, &b);
+      printf("%f\n", fmul(a, b));
+   }
+
    return 0;
 }
