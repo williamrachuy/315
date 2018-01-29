@@ -70,8 +70,57 @@ unsigned int uMultiply(unsigned int a, unsigned int b) {
    return product;
 }
 
-long int sMultiply(int a, int b){
-   unsigned long int product = 0;
+unsigned long int umul2_long(unsigned int a, unsigned int b)
+  {
+  short int i;
+  unsigned long int product;
+  unsigned long int multiplicand;
+
+  unsigned long int oproduct;	/* allowing us to detect carry */
+  unsigned long int carry;		/* Will be set to 0x80000000 if carry */
+  
+  product = (unsigned long int) a;	/* Multiplier into low portion of product */
+
+  multiplicand = ((unsigned long int) b ) << 32; /* Kept in high 32 bits */
+
+  carry = 0L;				/* Initialize value in case there are no add's */
+
+  for (i=0; i<32; i++)		/* Multiplying 32-bit fields */
+    {
+
+    if (product & 1)		/* Test low bit of multiplier */
+      {
+      oproduct = product;	/* *** Old value of product before addition */
+      carry = 0L;		/* Initialize - NO carry */
+
+/*----------------------------------------------------------------------*
+ *	This is where we add the multiplicand to the high 16 bits of	*
+ *	the product.   Note the product ends up being 32 bits long.	*
+ *----------------------------------------------------------------------*/
+
+      product += multiplicand;	/* Add to high 16 bits */
+				/* (because multiplicand was up-shifted) */
+
+      if (product < oproduct)	/* *** Check for carry after the last add */
+         {
+         carry = 0x8000000000000000L;	/* If carry, force shifted high bit to 1 */
+         }
+      }
+
+/*----------------------------------------------------------------------*
+ *	This is where we shift right the 32-bit product	and then "or"	*
+ *	in the high bit based on the carry status.			*
+ *----------------------------------------------------------------------*/
+ 	
+    product = (product >> 1) | carry;	/* Shift right, shift in carry from left */
+
+    }
+
+  return (product);		/* Return 32-bit unsigned int */
+  }
+
+long int sMultiply(long int a, long int b){
+   unsigned long int product = 0, carryCheck, carryVal;
    short int i;
    unsigned long int multiplicand;
    long int result;
@@ -87,27 +136,36 @@ long int sMultiply(int a, int b){
    if(b < 0) b = -b;
    
    // Set product and multiplicand without sign bit
-   product = (unsigned long)a & 0x7FFFFFFFFFFFFFFF;
-   multiplicand = ((unsigned long)b & 0x7FFFFFFFFFFFFFFF) << 32;
+   product = (unsigned long int)a & 0x7FFFFFFFFFFFFFFF;
+   multiplicand = ((unsigned long int)b & 0x7FFFFFFFFFFFFFFF) << 32;
+   
+   printf("Product: 0x%016lx, Multiplicand: 0x%016lx\n", product, multiplicand);   
    
    for(i = 0; i < 32; i++){
       if(product & 0x0000000000000001){
+         carryCheck = product;
+         carryVal = 0x0000000000000000;
          product += multiplicand;
          
-         //if(product & 0x8000000000000000)
+         if(product < carryCheck){
+            carryVal = 0x8000000000000000;
+         }
       }
       
-      product = (product >> 1);
+      product = (product >> 1) | carryVal;
+      
+      printf("Current iteration %d: 0x%016lx\n", i, product);
    }
    
-#ifdef TRACE
-   printf("Signed long int multiplication, a = 0x%x, b = 0x%x\n", a, b);
-   printf("result = 0x%032lx\n\n", product);
-#endif
+
+   printf("Signed long int multiplication, a = 0x%lx/%ld, b = 0x%lx/%ld\n", a, a, b, b);
+   printf("result = 0x%016lx/%ld\n\n", product, product);
    
    result = (long int)product;
    
    if(sign) result *= -1;
+   
+   printf("Sign is: %d, Signed result = 0x%016lx/%ld\n\n", sign, result, result);
    
    return result;
 }
@@ -127,8 +185,9 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
       fltStruct->sign     = fltConv & 0x80000000;
       fltStruct->exponent = ((fltConv >> 23) & 0x000000FF) - 127;
       fltStruct->fraction = ((fltConv << 7) & 0x3FFFFF80) | 0x40000000;
-      if (fltStruct->sign == 0x80000000)
-         fltStruct->fraction = -fltStruct->fraction;
+      
+      //if (fltStruct->sign == 0x80000000)
+      //   fltStruct->fraction = -fltStruct->fraction;
    }
 
 #ifdef TRACE
@@ -141,17 +200,26 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
 
 float packFloat(intFloat *fltStruct) {
    unsigned int fltConv = 0;
+   int fracSigned;
+   float fltReturn;
 
-   fltConv |= fltStruct->sign & 0x80000000;
+   //fltConv |= fltStruct->sign & 0x80000000;
    fltConv |= ((fltStruct->exponent + 127) << 23) & 0x7F800000;
-   if (fltStruct->sign) fltStruct->fraction = -fltStruct->fraction;
-   fltConv |= ((fltStruct->fraction & ~0x40000000) >> 7) & 0x007FFFFF;
+   fltConv |= fltStruct->sign & 0x80000000;
+   fracSigned = fltStruct->fraction;
+   //if (fltStruct->sign) fracSigned *= -1;
+   fltConv |= ((fracSigned & ~0x40000000) >> 7) & 0x007FFFFF;
 
 #ifdef TRACE
    printf("(packFloat) sign: 0x%08X, exp 0x%08X, frac: 0x%08X\n",
          fltStruct->sign, fltStruct->exponent, fltStruct->fraction);
    printf("(packFloat) fltConv: %g\n", (float)*(float *)&fltConv);
 #endif
+
+   fltReturn = (float)*(float *)&fltConv;
+
+   printf("Inside packFloat: \nftReturn = 0x%016lx/%f, fltConv = 0x%016lx/%ld\n\n",
+      fltReturn, fltReturn, fltConv, fltConv);
 
    return (float)*(float *)&fltConv;
 }
@@ -254,6 +322,8 @@ float subtractFloat(float a, float b){
 
 float fmul(float a, float b){
    intFloat fltStructA, fltStructB, fltStructR;
+   float fRet;
+   int multiplicandA, multiplicandB;
    long int multiplyReturn;
 
    fltStructR.sign     = 0;
@@ -262,27 +332,58 @@ float fmul(float a, float b){
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
 
+   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
+   printf("A: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
+         fltStructA.fraction, fltStructA.exponent, fltStructA.exponent);
+
+   
+   /*if(fltStructA.fraction < 0) 
+      multiplicandA = -fltStructA.fraction;
+   else
+      multiplicandA = fltStructA.fraction;
+   if(fltStructB.fraction < 0) 
+      multiplicandB = -fltStructB.fraction;
+   else
+      multiplicandB = -fltStructB.fraction;
+   */
+   
+   printf("Fraction values from multiply: A=0x%08x/%f B=0x%08x/%f\n", 
+      fltStructA.fraction, fltStructA.fraction, fltStructB.fraction, fltStructB.fraction);
    
    fltStructR.exponent = fltStructA.exponent + fltStructB.exponent;
-
-   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
+   fltStructR.sign = fltStructA.sign ^ fltStructB.sign;
    
-   if(multiplyReturn < 0){
-      fltStructR.sign = 0x80000000;
-      multiplyReturn *= -1;
-   }
+   multiplyReturn = umul2_long(fltStructA.fraction << 1, fltStructB.fraction << 1);
+   //multiplyReturn = umul2_long(multiplicandA << 1, multiplicandB << 1);
    
-   fltStructR.fraction = (int)(multiplyReturn >> 32);
+   printf("Exponents are: A=%d, B=%d, R=%d\n", fltStructA.exponent, fltStructB.exponent,fltStructR.exponent);
+   printf("sMultiply result = 0x%016lx/%ld\n\n", multiplyReturn, multiplyReturn);
+      
+   fltStructR.fraction = (multiplyReturn >> 32) & 0xFFFFFFFF;
+   
+   printf("MultiplyReturn Shift = 0x%08x/%d\n\n", 
+      (int)(multiplyReturn >> 32) & 0xFFFFFFFF, multiplyReturn >> 32);
+   printf("Structure Fraction = 0x%08x/%d\n\n", fltStructR.fraction, fltStructR.fraction);
    
    normalizeFloat(&fltStructR);
 
-#ifdef TRACE
-   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
-   printf("result: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
-         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
-#endif
+   printf("Normalized fraction = 0x%08x/%d\n\n", fltStructR.fraction, fltStructR.fraction);
+   
 
-   return packFloat(&fltStructR);
+   printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
+   printf("result: fraction = 0x%016lX, exponent = 0x%08X (%d)\n\n",
+         fltStructR.fraction, fltStructR.exponent, fltStructR.exponent);
+
+   printf("Inside FMUL Packed float: 0x%016lx/%f\n", packFloat(&fltStructR), packFloat(&fltStructR));
+   printf("Inside FMUL Packed float: 0x%016lx/%f\n", packFloat(&fltStructR), packFloat(&fltStructR));
+   printf("Inside FMUL Packed float: 0x%016lx/%f\n", packFloat(&fltStructR), packFloat(&fltStructR));
+   printf("Inside FMUL Packed float: 0x%016lx/%f\n", packFloat(&fltStructR), packFloat(&fltStructR));
+
+   fRet = packFloat(&fltStructR);
+      
+   printf("Inside FMUL fRet: 0x%016lx/%f\n", fRet, fRet);
+
+   return fRet;
 }
 
 void printPart1(char n, unsigned int a, unsigned int b) {
@@ -326,6 +427,9 @@ int main(void) {
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
 
    unsigned int a, b;*/
+   
+   
+   /*
    printf("\n");
 
    linePart(1);
@@ -361,6 +465,8 @@ int main(void) {
 
    linePart(7);
    lineBreak(1);
+   
+   */
 
 /*   printf("Enter float: ");
    scanf("%g", &fltIn);
@@ -390,5 +496,41 @@ int main(void) {
    mulRes = sMultiply(a, b);
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
 */
+
+   long int a = -888, b = 100, sMulRes;
+   int d;
+   float fltInA, fltInB, fltTemp;
+   intFloat fltStructA;
+   
+   /*printf("long int: %d, int: %d\n", sizeof(a), sizeof(d));
+      
+   printf("Enter two ints: "); 
+   scanf("%ld%ld\n", &a, &b);
+   printf("Those numbers were: %ld, %ld\n", a, b);
+   sMulRes = sMultiply(a, b);
+   printf("Product: %lx\n", sMulRes);
+*/
+
+   printf("Enter two floats: ");
+   scanf("%f%f", &fltInA, &fltInB);
+   
+   extFloat(&fltStructA, fltInA);
+   
+   printf("orig float: 0x%016lx/%f\n", fltInA, fltInA);
+   
+   
+   //printf("Packed float: 0x%016lx/%f\n", packFloat(&fltStructA), packFloat(&fltStructA));
+   
+   fltTemp = packFloat(&fltStructA);
+   
+   printf("Packed float in mem: 0x%016lx/%f\n", fltTemp, fltTemp);
+   
+   
+   
+   fltTemp = fmul(fltInA, fltInB);
+   printf("FMUL return outside: 0x%016lx/%f\n", fmul(fltInA, fltInB), fmul(fltInA, fltInB));
+   printf("Packed float: 0x%016lx/%f\n", fltTemp, fltTemp);
+
+
    return 0;
 }
