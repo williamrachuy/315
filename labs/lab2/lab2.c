@@ -31,6 +31,23 @@ void lineBreak(unsigned int n) {
       printf("\n");
 }
 
+int decToBinInt(int);
+int decToBinLong(long);
+
+int decToBinInt(int dec) {
+   if (dec == 0)
+      return 0;
+   else
+      return (dec % 2 + 10 * decToBinInt(dec / 2));
+}
+
+int decToBinLong(long dec) {
+   if (dec == 0)
+      return 0;
+   else
+      return (dec % 2 + 10 * decToBinInt(dec / 2));
+}
+
 unsigned int convFltTo754(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
 }
@@ -152,9 +169,13 @@ long int sMultiply(long int a, long int b){
          }
       }
       
+<<<<<<< HEAD
       product = (product >> 1) | carryVal;
       
       printf("Current iteration %d: 0x%016lx\n", i, product);
+=======
+         product = product >> 1;
+>>>>>>> c0a4217321e67405f3acae37c40a5c43d09dda10
    }
    
 
@@ -331,7 +352,10 @@ float fmul(float a, float b){
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+  
+   fltStructR.exponent = fltStructA.exponent + fltStructB.exponent + 1;
 
+<<<<<<< HEAD
    printf("Post-normalize, addFloat called with a = %.8f, b = %.8f\n", a, b);
    printf("A: fraction = 0x%08X, exponent = 0x%08X (%d)\n\n",
          fltStructA.fraction, fltStructA.exponent, fltStructA.exponent);
@@ -364,6 +388,18 @@ float fmul(float a, float b){
    printf("MultiplyReturn Shift = 0x%08x/%d\n\n", 
       (int)(multiplyReturn >> 32) & 0xFFFFFFFF, multiplyReturn >> 32);
    printf("Structure Fraction = 0x%08x/%d\n\n", fltStructR.fraction, fltStructR.fraction);
+=======
+   printf("0b%d\n", decToBinInt(fltStructA.fraction));
+   multiplyReturn = sMultiply(fltStructA.fraction, fltStructB.fraction);
+   printf("0b%l\n", decToBinLong(multiplyReturn));
+   
+   if(fltStructA.sign ^ fltStructB.sign){
+      fltStructR.sign = 0x80000000;
+   }
+   
+   fltStructR.fraction = (int)(multiplyReturn >> 32);
+   printf("0b%d\n", decToBinInt(fltStructR.fraction));
+>>>>>>> c0a4217321e67405f3acae37c40a5c43d09dda10
    
    normalizeFloat(&fltStructR);
 
@@ -427,9 +463,14 @@ int main(void) {
    intFloat myFloatStruct = {.sign = 0, .exponent = 0, .fraction = 0};
 
    unsigned int a, b;*/
+<<<<<<< HEAD
    
    
    /*
+=======
+   float a, b;
+
+>>>>>>> c0a4217321e67405f3acae37c40a5c43d09dda10
    printf("\n");
 
    linePart(1);
@@ -497,6 +538,7 @@ int main(void) {
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
 */
 
+<<<<<<< HEAD
    long int a = -888, b = 100, sMulRes;
    int d;
    float fltInA, fltInB, fltTemp;
@@ -531,6 +573,14 @@ int main(void) {
    printf("FMUL return outside: 0x%016lx/%f\n", fmul(fltInA, fltInB), fmul(fltInA, fltInB));
    printf("Packed float: 0x%016lx/%f\n", fltTemp, fltTemp);
 
+=======
+   
+
+   while (1) {
+      scanf("%f%f", &a, &b);
+      printf("%f\n", fmul(a, b));
+   }
+>>>>>>> c0a4217321e67405f3acae37c40a5c43d09dda10
 
    return 0;
 }
