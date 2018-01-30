@@ -1,4 +1,5 @@
 #include <stdio.h>
+#define TRACE
 
 typedef struct {
    unsigned int sign;
@@ -87,7 +88,14 @@ long int sMultiply(long int a, long int b){
             carryVal = 0x8000000000000000;
          }
       }
+<<<<<<< HEAD
       product = (product >> 1) | carryVal;
+=======
+      
+      product = (product >> 1) | carryVal;
+      
+      printf("Current iteration %d: 0x%016lx\n", i, product);
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    }
    result = (long int)product;
    if (sign) result *= -1;
@@ -96,7 +104,11 @@ long int sMultiply(long int a, long int b){
 }
 
 intFloat *extFloat(intFloat *fltStruct, float flt) {
+<<<<<<< HEAD
    unsigned int fltConv = convFltTo754(flt);
+=======
+   unsigned int fltConv = (unsigned int)*(unsigned int *)&flt;
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
 
    if (flt == 0) {
       fltStruct->sign     = 0;
@@ -106,8 +118,24 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
       fltStruct->sign     = fltConv & 0x80000000;
       fltStruct->exponent = ((fltConv >> 23) & 0x000000FF) - 127;
       fltStruct->fraction = ((fltConv << 7) & 0x3FFFFF80) | 0x40000000;
+<<<<<<< HEAD
       if (fltStruct->sign == 0x80000000)
          fltStruct->fraction *= -1;
+=======
+      
+      #ifdef TRACE
+      printf("extFloat before negation: fltStruct.fraction = 0x%08x\n", fltStruct->fraction);
+      
+      #endif
+      
+      if(fltStruct->sign) fltStruct->fraction *= -1;
+      
+      #ifdef TRACE
+      printf("extFloat: float = %g, fltStruct.sign = 0x%08x, fltStruct.exponent = 0x%08x, fltStruct.fraction = 0x%08x\n",
+         flt, fltStruct->sign, fltStruct->exponent, fltStruct->fraction);
+      
+      #endif
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    }
 
    return fltStruct;
@@ -115,6 +143,7 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
 
 float packFloat(intFloat *fltStruct) {
    unsigned int fltConv = 0;
+<<<<<<< HEAD
 
    fltConv |= fltStruct->sign & 0x80000000;
    fltConv |= ((fltStruct->exponent + 127) << 23) & 0x7F800000;
@@ -123,6 +152,17 @@ float packFloat(intFloat *fltStruct) {
    fltConv |= (fltStruct->fraction >> 7) & 0x007FFFFF;
 
    return conv754toFlt(fltConv);
+=======
+   int fracSigned;
+
+   fltConv |= ((fltStruct->exponent + 127) << 23) & 0x7F800000;
+   fltConv |= fltStruct->sign & 0x80000000;
+   fracSigned = fltStruct->fraction;
+   if(fltStruct->sign) fracSigned *= -1;
+   fltConv |= ((fracSigned & ~0x40000000) >> 7) & 0x007FFFFF;
+
+   return (float)*(float *)&fltConv;
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
 }
 
 intFloat *scaleFloat(intFloat *fltStruct, int n) {
@@ -133,12 +173,42 @@ intFloat *scaleFloat(intFloat *fltStruct, int n) {
 }
 
 intFloat *normalizeFloat(intFloat *fltStruct) {
+<<<<<<< HEAD
    if (fltStruct->fraction == 0) return fltStruct;
    while (!((fltStruct->fraction ^ (fltStruct->fraction >> 1)) & 0x40000000)) {
+=======
+   unsigned int signFlag = (fltStruct->fraction >> 1);
+
+   if (fltStruct->fraction == 0){
+      fltStruct->exponent = 0;
+      return fltStruct;
+   }
+
+#ifdef TRACE   
+   printf("Fraction before normalize: 0x%08x", fltStruct->fraction);
+#endif
+
+   // Probably need to do different operations depending on whether 
+   // the sign is positive or negative - original solution was for unsigned!
+   //
+   // while the sign bit and bit next to sign bit are the same, shift left
+   // XOR the two bits, if the result is a 0 that means the two bits are the same and 
+   // we need to keep shifting. If the XOR produces a 1 that means the two bits are
+   // different and we have finished normalizing
+   while (!(((fltStruct->fraction & 0x80000000) ^ ((fltStruct->fraction) << 1) & 0x80000000)))
+   {
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
       fltStruct->fraction <<= 1;
       fltStruct->exponent--;
    }
 
+<<<<<<< HEAD
+=======
+#ifdef TRACE
+   printf("Fraction during normalize: 0x%08x\n", fltStruct->fraction);
+#endif
+   
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    return fltStruct;
 }
 
@@ -151,15 +221,37 @@ float addFloat(float a, float b) {
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+   
+#ifdef TRACE
+   printf("Exponents before add: A = 0x%08x, B = 0x%08x\n", fltStructA.exponent, fltStructB.exponent);
+   printf("Fractions before add: A = 0x%08x, B = 0x%08x\n", fltStructA.fraction, fltStructB.fraction);
+#endif
+   
    exponentDiff = fltStructA.exponent - fltStructB.exponent;
    if (exponentDiff > 0) scaleFloat(&fltStructB, exponentDiff);
    if (exponentDiff < 0) scaleFloat(&fltStructA, -exponentDiff);
    fltStructR.fraction =
-         (fltStructA.fraction >> 1) + (fltStructB.fraction >> 1);
+         (fltStructA.fraction) + (fltStructB.fraction);
+         
    fltStructR.sign |= fltStructR.fraction & 0x80000000;
-   fltStructR.exponent = fltStructA.exponent + 1;
+   fltStructR.exponent = fltStructA.exponent;
+   
+#ifdef TRACE
+   printf("Exponents after add before normalize: R = 0x%08x\n", fltStructR.exponent);
+   printf("Fractions after add before normalize: R = 0x%08x\n", fltStructR.fraction);
+#endif   
+   
    normalizeFloat(&fltStructR);
 
+<<<<<<< HEAD
+=======
+#ifdef TRACE
+   printf("Exponents after add after normalize: R = 0x%08x\n", fltStructR.exponent);
+   printf("Fractions after add after normalize: R = 0x%08x\n", fltStructR.fraction);
+#endif   
+
+   
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    return packFloat(&fltStructR);
 }
 
@@ -172,6 +264,12 @@ float subFloat(float a, float b){
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+   
+#ifdef TRACE
+   printf("Exponents before sub: A = 0x%08x, B = 0x%08x\n", fltStructA.exponent, fltStructB.exponent);
+   printf("Fractions before sub: A = 0x%08x, B = 0x%08x\n", fltStructA.fraction, fltStructB.fraction);
+#endif
+   
    exponentDiff = fltStructA.exponent - fltStructB.exponent;
    if (exponentDiff > 0) scaleFloat(&fltStructB, exponentDiff);
    if (exponentDiff < 0) scaleFloat(&fltStructA, -exponentDiff);
@@ -179,10 +277,26 @@ float subFloat(float a, float b){
       ((fltStructA.fraction >> 1) - (fltStructB.fraction >> 1));
    fltStructR.sign |= fltStructR.fraction & 0x80000000;
    fltStructR.exponent = fltStructA.exponent + 1;
+<<<<<<< HEAD
    normalizeFloat(&fltStructR);
    
    return packFloat(&fltStructR);   
+=======
+
+#ifdef TRACE
+   printf("Exponents after sub before normalize: A = 0x%08x, B = 0x%08x\n", fltStructR.exponent, fltStructR.exponent);
+   printf("Fractions after sub before normalize: A = 0x%08x, B = 0x%08x\n", fltStructR.fraction, fltStructR.fraction);
+#endif     
+
+   normalizeFloat(&fltStructR);
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    
+#ifdef TRACE
+   printf("Exponents after sub after normalize: A = 0x%08x, B = 0x%08x\n", fltStructR.exponent, fltStructR.exponent);
+   printf("Fractions after sub after normalize: A = 0x%08x, B = 0x%08x\n", fltStructR.fraction, fltStructR.fraction);
+#endif     
+   
+   return packFloat(&fltStructR);   
 }
 
 float fMultiply_754(float a, float b){
@@ -193,9 +307,20 @@ float fMultiply_754(float a, float b){
    fltStructR.fraction = 0;
    extFloat(&fltStructA, a);
    extFloat(&fltStructB, b);
+<<<<<<< HEAD
    fltStructR.sign = fltStructA.sign ^ fltStructB.sign; 
    fltStructR.exponent = fltStructA.exponent + fltStructB.exponent;
    fltStructR.fraction = (uMultiply_Long(fltStructA.fraction << 1, fltStructB.fraction << 1) >> 32) & 0xFFFFFFFF;
+=======
+   
+   fltStructR.exponent = fltStructA.exponent + fltStructB.exponent;
+   fltStructR.sign = fltStructA.sign ^ fltStructB.sign;
+   
+   multiplyReturn = umul2_long(fltStructA.fraction << 1, fltStructB.fraction << 1);
+   
+   fltStructR.fraction = (multiplyReturn >> 32) & 0xFFFFFFFF;
+   
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
    normalizeFloat(&fltStructR);
 
    return packFloat(&fltStructR);
@@ -245,10 +370,6 @@ int main(void) {
    
    
    /*
-=======
-   float a, b;
-
->>>>>>> c0a4217321e67405f3acae37c40a5c43d09dda10
    printf("\n");
 
    linePart(1);
@@ -315,6 +436,7 @@ int main(void) {
    mulRes = sMultiply(a, b);
    printf("sMultiply: a = 0x%x, b = 0x%x, result = 0x%lx\n", a, b, mulRes); 
 */
+<<<<<<< HEAD
 
    float a, b;
 
@@ -323,6 +445,15 @@ int main(void) {
       scanf("%f %f", &a, &b);
       printf("%f + %f = %f\n\n", a, b, addFloat(a, b));
    }
+=======
+   float fltInA, fltInB, fltTemp;
+
+   printf("Enter two floats: ");
+   scanf("%g%g", &fltInA, &fltInB);
+   printf("Addition: %g\n", addFloat(fltInA, fltInB));
+   printf("Subtraction: %g\n", subtractFloat(fltInA, fltInB));
+   printf("Multiplication: %g\n", fmul(fltInA, fltInB));
+>>>>>>> 321a240a29d659ff2934edf6ebf1b4fba6445e60
 
    return 0;
 }
