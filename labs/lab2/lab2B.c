@@ -1,18 +1,51 @@
+/*******************************************************************************
+ *
+ * CPE 315 LAB 2
+ * Coded by Cameron Simpson and William Rachuy
+ * January 24, 2018
+ *
+ ******************************************************************************/
+
 #include <stdio.h>
 
+/* A structure that contains extracted IEEE754 float values
+ */
 typedef struct {
    unsigned int sign;
    int exponent, fraction;
 } intFloat;
 
+/* Description: Converts a float into its IEEE754 unsigned counterpart
+ *
+ * Parameters:
+ *    flt: A float value
+ *
+ * Return: An IEEE754 formatted unsigned int, which is the float counterpart
+ */
 unsigned int convFltTo754(float flt) {
    return (unsigned int)*(unsigned int *)&flt;
 }
 
+/* Description: Converts an IEEE754 unsigned int into a float
+ *
+ * Parameters:
+ *    flt754: An IEEE unsigned int
+ *
+ * Return: A float value, which is the counterpart of the IEEE754 unsigned int
+ */
 float conv754toFlt(unsigned int flt754) {
    return (float)*(float *)&flt754;
 }
 
+/* Description: Normalizes the float structure's fraction, while modifying the
+ *    exponent. Negates negative fraction values before normalization and re
+ *    negates them afterwards
+ *
+ * Parameters:
+ *    fltStruct: A pointer to an unnormailzed float structure
+ *
+ * Return: A pointer to a normalized float structure
+ */ 
 intFloat *normalizeFloat(intFloat *fltStruct) {
    if (fltStruct->fraction == 0) return fltStruct;
    if (fltStruct->sign & 0x80000000) fltStruct->fraction *= -1;
@@ -25,6 +58,15 @@ intFloat *normalizeFloat(intFloat *fltStruct) {
    return fltStruct;
 }
 
+/* Description: Scales the exponent element of the float to align with the
+ *    exponent value of the other float that will be added to this one
+ *
+ * Parameters:
+ *    fltStruct: A pointer to an unscaled float structure
+ *    n: The amount for the fraction and exponent to be scaled by
+ *
+ * Return: A pointer to a scaled float structure
+ */ 
 intFloat *scaleFloat(intFloat *fltStruct, int n) {
    fltStruct->fraction >>= n;
    fltStruct->exponent += n;
@@ -32,6 +74,14 @@ intFloat *scaleFloat(intFloat *fltStruct, int n) {
    return fltStruct;
 }
 
+/* Description: Extracts a float into a float structure
+ *
+ * Parameters:
+ *    fltStruct: A pointer to an empty float structure
+ *    flt: A float value
+ *
+ * Return: A pointer to an extracted float structure
+ */
 intFloat *extFloat(intFloat *fltStruct, float flt) {
    unsigned int fltConv = convFltTo754(flt);
 
@@ -50,6 +100,13 @@ intFloat *extFloat(intFloat *fltStruct, float flt) {
    return fltStruct;
 }
 
+/* Description: Packs a float structure into a float value
+ *
+ * Parameters:
+ *    fltStruct: A pointer to a float structure
+ *
+ * Return: A pointer to a normalized float structure
+ */ 
 float packFloat(intFloat *fltStruct) {
    unsigned int fltConv = 0;
 
@@ -64,6 +121,14 @@ float packFloat(intFloat *fltStruct) {
    return conv754toFlt(fltConv);
 }
 
+/* Description: Adds two float structures and produces a float value
+ *
+ * Parameters:
+ *    a: A float value to be added
+ *    b: A float value to be added
+ *
+ * Return: The sum of the two parameters as a float value
+ */ 
 float addFloat(float a, float b) {
    intFloat fltStructA, fltStructB, fltStructR;
    int exponentDiff;
@@ -84,6 +149,14 @@ float addFloat(float a, float b) {
    return packFloat(&fltStructR);
 }
 
+/* Description: Subtracts two float structures and produces a float value
+ *
+ * Parameters:
+ *    a: A float value to be subtracted
+ *    b: A float value to be subtracted
+ *
+ * Return: The difference of the two parameters as a float value
+ */ 
 float subFloat(float a, float b) {
    intFloat fltStructA, fltStructB, fltStructR;
    int exponentDiff;
@@ -104,6 +177,14 @@ float subFloat(float a, float b) {
    return packFloat(&fltStructR);
 }
 
+/* Description: Multiplies two unsigned integers and produces a product
+ *
+ * Parameters:
+ *    a: An unsigned int value to be multiplied
+ *    b: An unsigned int value to be multiplied
+ *
+ * Return: The product of the two parameters as an unsigned int
+ */ 
 unsigned int uMultiply_Int(unsigned int a, unsigned int b) {
    unsigned int multiplicand, product, carryDetect, carryAdd = 0;
    short int i;
@@ -123,6 +204,14 @@ unsigned int uMultiply_Int(unsigned int a, unsigned int b) {
    return product;
 }
 
+/* Description: Multiplies two unsigned integers and produces a product
+ *
+ * Parameters:
+ *    a: An unsigned int value to be multiplied
+ *    b: An unsigned int value to be multiplied
+ *
+ * Return: The product of the two parameters as an unsigned long int
+ */ 
 unsigned long uMultiply_Long(unsigned int a, unsigned int b) {
    unsigned long multiplicand, product, carryDetect, carryAdd = 0L;
    short int i;
@@ -142,6 +231,14 @@ unsigned long uMultiply_Long(unsigned int a, unsigned int b) {
    return product;
 }
 
+/* Description: Multiplies two signed integers and produces a product
+ *
+ * Parameters:
+ *    a: An long int value to be multiplied
+ *    b: An long int value to be multiplied
+ *
+ * Return: The product of the two parameters as a long int
+ */ 
 long int sMultiply_Long(long int a, long int b) {
    unsigned long multiplicand, product, carryDetect, carryAdd;
    short int i, sign = 1;
@@ -171,6 +268,14 @@ long int sMultiply_Long(long int a, long int b) {
    return product;
 }
 
+/* Description: Multiplies two float values and produces a product
+ *
+ * Parameters:
+ *    a: A float value to be multiplied
+ *    b: A float value to be multiplied
+ *
+ * Return: The product of the two parameters as a float value
+ */ 
 float fMultiply(float a, float b){
    intFloat fltStructA, fltStructB, fltStructR;
 
@@ -193,10 +298,9 @@ float fMultiply(float a, float b){
 
 /*******************************************************************************
  *
- *    Functions used for output
+ * Functions used for output
  *
- ******************************************************************************/
-
+*******************************************************************************/
 void printPart1(char n, unsigned int a, unsigned int b) {
    printf("1%c. a=0x%04X, b=0x%04X c=0x%08X\n", n, a, b, uMultiply_Int(a, b));
 }
@@ -266,6 +370,11 @@ void lineBreak(unsigned int n) {
       printf("\n");
 }
 
+/*******************************************************************************
+ *
+ * Main
+ *
+*******************************************************************************/
 int main(void) {
    printf("\n");
 
