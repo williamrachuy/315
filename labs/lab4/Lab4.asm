@@ -7,9 +7,7 @@ ASCII_table:	.byte	48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 7
 
 
 bintohex:	addi	$sp, $sp, -4		#increase stack pointer for frame pointer
-		sw	$fp, 0($sp)		#store fram pointer on stack
-		or	$fp, $zero, $sp		#use current stack pointer location as new frame pointer val
-
+		sw	$fp, 0($sp)		#store frame pointer on stack
 		addi	$sp, $sp, -4		#increase stack pointer for storing return address
 		sw	$ra, 0($sp)		#store return address
 		addi	$sp, $sp, -20		#increase stack pointer for storing function registers, 
@@ -19,8 +17,9 @@ bintohex:	addi	$sp, $sp, -4		#increase stack pointer for frame pointer
 		sw	$t2, 8($sp)		#store temp reg $t2 on stack
 		sw	$t3, 4($sp)		#store temp reg $t3 on stack
 		sw	$t4, 0($sp)		#store temp reg $t3 on stack
+		or	$fp, $zero, $sp		#use current stack pointer location as new frame pointer val
 
-		la	$t3, ASCII_table	#load table address		
+		#la	$t3, ASCII_table	#load table address		
 		or	$t2, $zero, $zero	#temp initial shift amount, and loop count, as zero initial
 		or	$t1, $a1, $zero		#temp holder for argument address
 		or	$t4, $a0, $zero		#temp holder for binary value
@@ -35,9 +34,9 @@ hexgen:		andi	$t0, $t4, 0x0000000F	#mask lower nibble
 		srl	$t4, $t4, 4		#shift temp binary variable right 4 bits 
 		add	$t2, $t2, 1		#add one byte to string address offset 
 		bge	$t2, 8, hexgen		#branch if string location is equal or greater than 8	
-				
-		
-		lw	$fp, 0($sp)		#load frame pointer back from stack
+
+
+		#lw	$fp, 0($sp)		#load frame pointer back from stack
 		addi	$sp, $sp, 20
 		lw	$t0, 0($sp)
 		lw	$t1, -4($sp)
@@ -47,6 +46,7 @@ hexgen:		andi	$t0, $t4, 0x0000000F	#mask lower nibble
 		addi	$sp, $sp, 4
 		lw	$ra, 0($sp)
 		addi	$sp, $sp, 4
+		or	$sp, $fp, $zero
 		jr	$ra
 		
 		
