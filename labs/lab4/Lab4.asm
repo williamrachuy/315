@@ -37,6 +37,7 @@ hexgen:		andi	$t0, $t4, 0x0000000F	#mask lower nibble
 
 
 		#lw	$fp, 0($sp)		#load frame pointer back from stack
+		or	$sp, $fp, $zero
 		addi	$sp, $sp, 20
 		lw	$t0, 0($sp)
 		lw	$t1, -4($sp)
@@ -46,7 +47,7 @@ hexgen:		andi	$t0, $t4, 0x0000000F	#mask lower nibble
 		addi	$sp, $sp, 4
 		lw	$ra, 0($sp)
 		addi	$sp, $sp, 4
-		or	$sp, $fp, $zero
+		lw	$fp, 0($sp), $zero
 		jr	$ra
 		
 		
