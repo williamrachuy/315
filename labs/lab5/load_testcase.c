@@ -32,7 +32,8 @@ int main(void) {
       printf("\nThis isn't really a mips_asm binary file - quitting.\n");
       exit(98);
    }
-   printf("\n%s Loaded ok, program size = %d bytes.\n\n", filename, mb_hdr.size);
+   printf("\n%s Loaded ok, program size = %d bytes.\n\n",
+      filename, mb_hdr.size);
    do {                                                                         /* read the binary code a word at a time */
       n = fread((void *)&mem[memPtr / 4], 4, 1, fd);                            /* note div/4 to make word index */
       if (n)
