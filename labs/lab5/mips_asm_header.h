@@ -1,11 +1,14 @@
+#ifndef MIPS_ASM_HEADER_H
+#define MIPS_ASM_HEADER_H
+
 /*----------------------------------------------------------------------*
- *	mips_asm Binary header (.mb) file header format.  This header	*
- *	provides for future information on mips assembler files.	*
+ *	mips_asm Binary header (.mb) file header format.  This header
+ *	provides for future information on mips assembler files.
  *									*
- *	write_header - writes mips_asm header, along with test data	*
- *									*
- *	This shows how the mips_asm header is written, and provides	*
- *	a test case (testcase1.mb) to be used for lab projects.		*
+ *	write_header - writes mips_asm header, along with test data
+ *
+ *	This shows how the mips_asm header is written, and provides
+ *	a test case (testcase1.mb) to be used for lab projects.
  *----------------------------------------------------------------------*/
 
 typedef struct _mb_hdr {
@@ -13,5 +16,7 @@ typedef struct _mb_hdr {
    unsigned int size;					/* Size of assembler program portion, bytes */
    unsigned int entry;					/* Entry point offset of program if not zero */
    unsigned int filler1;				/* Unused ... reserved for future use. */
-   unsigned char filler2[64 - 16];	/* Overall header is 64 bytes */
+   unsigned char filler2[64 - 16];		/* Overall header is 64 bytes */
 } MB_HDR, *MB_HDR_PTR;
+
+#endif

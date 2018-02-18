@@ -20,7 +20,7 @@ MIPS mem[1024];                                                                 
 int main(void) {
    FILE *fd;
    int memPtr, i, n;
-   char filename[] = "testcase1.mb";
+   char retStr[64], filename[] = "testcase1.mb";
 
    if ((fd = fopen(filename, "rb")) == NULL) {                                  /* format the MIPS Binary header */
      printf("\nCouldn't load test case - quitting.\n");
@@ -42,8 +42,11 @@ int main(void) {
          break;
    } while (memPtr < sizeof(mem)) ;
    fclose(fd);
-   for (i = 0; i < memPtr; i += 4)                                              /* ok, now dump out the instructions loaded: */
+   for (i = 0; i < memPtr; i += 4) {                                            /* ok, now dump out the instructions loaded: */
       printf("Instruction @ %08X : %08X\n", i, mem[i / 4]);                     /* i contains byte offset addresses */
+      strDecoded((unsigned)mem[i / 4], retStr);
+      printf("Decoded: %s\n\n", retStr);
+   }
    printf("\n");
 
    exit(EXIT_SUCCESS);
