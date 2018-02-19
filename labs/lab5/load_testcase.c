@@ -17,12 +17,12 @@ typedef unsigned int MIPS, *MIPS_PTR;
 MB_HDR mb_hdr;                                                                  /* Header area */
 MIPS mem[1024];                                                                 /* Room for 4K bytes */
 
-int main(void) {
+int main(const int argc, const char **argv) {
    FILE *fd;
    int memPtr, i, n;
-   char retStr[64], filename[] = "testcase1.mb";
+   char retStr[64];
 
-   if ((fd = fopen(filename, "rb")) == NULL) {                                  /* format the MIPS Binary header */
+   if ((fd = fopen(argv[1], "rb")) == NULL) {                                  /* format the MIPS Binary header */
      printf("\nCouldn't load test case - quitting.\n");
      exit(99);
    }
@@ -33,7 +33,7 @@ int main(void) {
       exit(98);
    }
    printf("\n%s Loaded ok, program size = %d bytes.\n\n",
-      filename, mb_hdr.size);
+      argv[1], mb_hdr.size);
    do {                                                                         /* read the binary code a word at a time */
       n = fread((void *)&mem[memPtr / 4], 4, 1, fd);                            /* note div/4 to make word index */
       if (n)
