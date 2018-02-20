@@ -1,0 +1,109 @@
+
+testcase1.mb Loaded ok, program size = 32 bytes.
+
+Instruction @ 00000000 : 0C10000C
+Decoded: Op=03, J Type (jal)
+JumpAddr=00400030
+
+Instruction @ 00000004 : 3402000A
+Decoded: Opcode=0x0D, I Type (ori)
+Rs=0 ($zero), Rt=2 ($v0), Imm=0x000A, signext: 0x0000000A (10)
+
+Instruction @ 00000008 : 0000000C
+Decoded: Op: 00, R Type (syscall)
+
+Instruction @ 0000000C : 02114026
+Decoded: Op: 00, R Type (xor)
+Rs=10 ($s0), Rt=11 ($s1), Rd=08 ($t0), Shamt: 00
+
+Instruction @ 00000010 : 31050002
+Decoded: Opcode=0x0C, I Type (andi)
+Rs=8 ($t0), Rt=5 ($a1), Imm=0x0002, signext: 0x00000002 (2)
+
+Instruction @ 00000014 : 1088FFFE
+Decoded: Opcode=0x04, I Type (beq)
+Rs=4 ($a0), Rt=8 ($t0), Imm=0xFFFE, signext: 0xFFFFFFFE (-2)
+BranchAddr=0x00000010
+
+Instruction @ 00000018 : 08100010
+Decoded: Op=02, J Type (j)
+JumpAddr=00400040
+
+Instruction @ 0000001C : 03E00008
+Decoded: Op: 00, R Type (jr)
+Rs=1F ($ra), Rt=00 ($zero), Rd=00 ($zero), Shamt: 00
+
+
+
+testcase2.mb Loaded ok, program size = 68 bytes.
+
+Instruction @ 00000000 : 00001234
+Decoded: Op: 00, R Type (other)
+
+Instruction @ 00000004 : 00001111
+Decoded: Op: 00, R Type (other)
+
+Instruction @ 00000008 : 8C080000
+Decoded: Opcode=0x23, I Type (lw)
+Rs=0 ($zero), Rt=8 ($t0), Imm=0x0000, signext: 0x00000000 (0)
+EffAddr=R[$zero] + 0x00000000
+
+Instruction @ 0000000C : 8C090004
+Decoded: Opcode=0x23, I Type (lw)
+Rs=0 ($zero), Rt=9 ($t1), Imm=0x0004, signext: 0x00000004 (4)
+EffAddr=R[$zero] + 0x00000004
+
+Instruction @ 00000010 : 0C00000F
+Decoded: Op=03, J Type (jal)
+JumpAddr=0000003C
+
+Instruction @ 00000014 : 200E0004
+Decoded: Opcode=0x08, I Type (addi)
+Rs=0 ($zero), Rt=14 ($t6), Imm=0x0004, signext: 0x00000004 (4)
+
+Instruction @ 00000018 : 15C00005
+Decoded: Opcode=0x05, I Type (bne)
+Rs=14 ($t6), Rt=0 ($zero), Imm=0x0005, signext: 0x00000005 (5)
+BranchAddr=0x00000030
+
+Instruction @ 0000001C : 80080000
+Decoded: Opcode=0x20, I Type (lb)
+Rs=0 ($zero), Rt=8 ($t0), Imm=0x0000, signext: 0x00000000 (0)
+EffAddr=R[$zero] + 0x00000000
+
+Instruction @ 00000020 : 11000003
+Decoded: Opcode=0x04, I Type (beq)
+Rs=8 ($t0), Rt=0 ($zero), Imm=0x0003, signext: 0x00000003 (3)
+BranchAddr=0x00000030
+
+Instruction @ 00000024 : 00024025
+Decoded: Op: 00, R Type (or)
+Rs=00 ($zero), Rt=02 ($v0), Rd=08 ($t0), Shamt: 00
+
+Instruction @ 00000028 : 3402000A
+Decoded: Opcode=0x0D, I Type (ori)
+Rs=0 ($zero), Rt=2 ($v0), Imm=0x000A, signext: 0x0000000A (10)
+
+Instruction @ 0000002C : 0000000C
+Decoded: Op: 00, R Type (syscall)
+
+Instruction @ 00000030 : 00024025
+Decoded: Op: 00, R Type (or)
+Rs=00 ($zero), Rt=02 ($v0), Rd=08 ($t0), Shamt: 00
+
+Instruction @ 00000034 : 3402000A
+Decoded: Opcode=0x0D, I Type (ori)
+Rs=0 ($zero), Rt=2 ($v0), Imm=0x000A, signext: 0x0000000A (10)
+
+Instruction @ 00000038 : 0000000C
+Decoded: Op: 00, R Type (syscall)
+
+Instruction @ 0000003C : 01091021
+Decoded: Op: 00, R Type (addu)
+Rs=08 ($t0), Rt=09 ($t1), Rd=02 ($v0), Shamt: 00
+
+Instruction @ 00000040 : 03E00008
+Decoded: Op: 00, R Type (jr)
+Rs=1F ($ra), Rt=00 ($zero), Rd=00 ($zero), Shamt: 00
+
+

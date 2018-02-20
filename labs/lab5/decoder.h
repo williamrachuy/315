@@ -3,6 +3,6 @@
 
 #include "mips_asm_header.h"
 
-void strDecoded(unsigned mem, char *retStr);
+void strDecoded(unsigned, char*, unsigned);
 
 #endif
