@@ -6,6 +6,12 @@
 #include <string.h>
 #include "decoder.h"
 
+// Lookup table for register names
+const char reg[33][6] = {"$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", 
+   "$a3", "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", 
+   "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9", "$k0", "$k1", "$gp", 
+   "$sp", "$fp", "$ra", "unk"};
+
 // Function returns R type function, or "other"
 static void getRFunct(unsigned funct, char *functStr) {
    if      (funct == 0x00) strcpy(functStr, "sll");
@@ -81,112 +87,6 @@ static void getType(unsigned op, unsigned funct, char *type, char *functStr) {
    }
 }
 
-// Set the names of the registers based on the index
-static void getRegStr(char *reg, unsigned val){
-   switch (val){
-      case 0:
-         strcpy(reg, "$zero");
-         break;
-      case 1:
-         strcpy(reg, "$at");
-         break;
-      case 2:
-         strcpy(reg, "$v0");
-         break;
-      case 3:
-         strcpy(reg, "$v1");
-         break;
-      case 4:
-         strcpy(reg, "$a0");
-         break;
-      case 5:
-         strcpy(reg, "$a1");
-         break;
-      case 6:
-         strcpy(reg, "$a2");
-         break;
-      case 7:
-         strcpy(reg, "$a3");
-         break;
-      case 8:
-         strcpy(reg, "$t0");
-         break;
-      case 9:
-         strcpy(reg, "$t1");
-         break;
-      case 10:
-         strcpy(reg, "$t2");
-         break;
-      case 11:
-         strcpy(reg, "$t3");
-         break;
-      case 12:
-         strcpy(reg, "$t4");
-         break;
-      case 13:
-         strcpy(reg, "$t5");
-         break;
-      case 14:
-         strcpy(reg, "$t6");
-         break;
-      case 15:
-         strcpy(reg, "$t7");
-         break;
-      case 16:
-         strcpy(reg, "$s0");
-         break;
-      case 17:
-         strcpy(reg, "$s1");
-         break;
-      case 18:
-         strcpy(reg, "$s2");
-         break;
-      case 19:
-         strcpy(reg, "$s3");
-         break;
-      case 20:
-         strcpy(reg, "$s4");
-         break;
-      case 21:
-         strcpy(reg, "$s5");
-         break;
-      case 22:
-         strcpy(reg, "$s6");
-         break;
-      case 23:
-         strcpy(reg, "$s7");
-         break;
-      case 24:
-         strcpy(reg, "$t8");
-         break;
-      case 25:
-         strcpy(reg, "$t9");
-         break;
-      case 26:
-         strcpy(reg, "$k0");
-         break;
-      case 27:
-         strcpy(reg, "$k1");
-         break;
-      case 28:
-         strcpy(reg, "$gp");
-         break;
-      case 29:
-         strcpy(reg, "$sp");
-         break;
-      case 30:
-         strcpy(reg, "$fp");
-         break;
-      case 31:
-         strcpy(reg, "$ra");
-         break;
-      default:
-         strcpy(reg, "unk");
-         break;
-   }
-      
-}
-
 // Returns sign extended value of input
 unsigned signExtend(unsigned orig){
    unsigned extended = orig & 0x0000FFFF;
@@ -203,7 +103,7 @@ unsigned signExtend(unsigned orig){
 // return string that has the pertinent information about the instruction
 void strDecoded(unsigned mem, char *retStr, unsigned PC) {
    // Initialize the strings used for characterization
-   char functStr[8], shamtStr[3], type, rsStr[6], rdStr[6], rtStr[6], conCat[100];
+   char functStr[8], shamtStr[3], type, conCat[100];
                                                                     
    unsigned op = (mem >> 26) & 0x3F, rs = (mem >> 21) & 0x1F;        // Split up the bits into the instruction sections
    unsigned rt = (mem >> 16) & 0x1F, rd = (mem >> 11) & 0x1F;
@@ -222,27 +122,21 @@ void strDecoded(unsigned mem, char *retStr, unsigned PC) {
       sprintf(retStr, "Op: %02X, %c Type (%s)", op, type, functStr); 
    }
    else if (type == 'R') {                                           // If type R, output all information regarding R type instructions
-      getRegStr(rsStr, rs);                                          // Convert all the register indexes to names
-      getRegStr(rtStr, rt);
-      getRegStr(rdStr, rd);
    
       sprintf(retStr, "Op: %02X, %c Type (%s)\nRs=%02X (%s), Rt=%02X (%s), Rd=%02X (%s), Shamt: %02X", 
-         op, type, functStr, rs, rsStr, rt, rtStr, rd, rdStr, shamt);
+         op, type, functStr, rs, reg[rs], rt, reg[rt], rd, reg[rd], shamt);
    }
    else if (type == 'I') {                                           // If type I, output information for I types, and extras if branch or load
-      getRegStr(rsStr, rs);                                          // Convert rs and rt indexes to names
-      getRegStr(rtStr, rt);
-
       
       sprintf(retStr, "Opcode=0x%02X, %c Type (%s)\n",               // Collect common info for all I types
          op, type, functStr);
       sprintf(conCat, "Rs=%d (%s), Rt=%d (%s), Imm=0x%04X, signext: 0x%08X (%hd)", 
-         rs, rsStr, rt, rtStr, imm, signExtend(imm), (short int)(imm));
+         rs, reg[rs], rt, reg[rt], imm, signExtend(imm), (short int)(imm));
       strcat(retStr, conCat);
       
       if(op > 0x0E){                                                 // Output for Load/Store I-types 
          sprintf(conCat, "\nEffAddr=R[%s] + 0x%08X",                 // Add effective address for load/store types
-            rsStr, signExtend(imm));
+            reg[rs], signExtend(imm));
          strcat(retStr, conCat);
       }
       else if(op == 0x04 || op == 0x05){                             // Output for branch I-types
