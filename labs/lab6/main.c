@@ -101,7 +101,7 @@ void loadMemory(void) {
       fclose(fd);
    }
    else {
-      fprintf(stderr, "\n   %s not a MIPS ASM binary file.\n", file);
+      fprintf(stderr, "\n   \"%s\" is not a MIPS ASM binary file.\n", file);
       resetCPU();
       return;
    }
