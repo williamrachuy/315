@@ -128,9 +128,7 @@ void execTypeR(Instruction iStruct, char *functStr, Stats *stats) {
             rt = iStruct.rt,
             rd = iStruct.rd,
             shamt = iStruct.shamt,
-            funct = iStruct.funct,
-            imm = iStruct.imm,
-            addr = iStruct.addr;
+            funct = iStruct.funct;
 
    if      (strcmp(functStr, "sll")    == SAME) reg[rd] = (unsigned)reg[rt] << shamt;
    else if (strcmp(functStr, "srl")    == SAME) reg[rd] = (unsigned)reg[rt] >> shamt;
@@ -138,8 +136,8 @@ void execTypeR(Instruction iStruct, char *functStr, Stats *stats) {
    else if (strcmp(functStr, "sllv")   == SAME) reg[rd] = (unsigned)reg[rt] << reg[rs];
    else if (strcmp(functStr, "srlv")   == SAME) reg[rd] = (unsigned)reg[rt] << reg[rs];
    else if (strcmp(functStr, "srav")   == SAME) reg[rd] = (signed)reg[rt] >> reg[rs];
-   else if (strcmp(functStr, "jr")     == SAME)      pc = reg[rs];
-   else if (strcmp(functStr, "jalr")   == SAME){reg[ra] = pc + 4; pc = reg[rs];}
+   else if (strcmp(functStr, "jr")     == SAME)       pc = reg[rs] - WORD_SIZE;
+   else if (strcmp(functStr, "jalr")   == SAME){reg[ra] = pc + WORD_SIZE; pc = reg[rs] - WORD_SIZE;}
    else if (strcmp(functStr, "add")    == SAME) reg[rd] = (signed)reg[rt] + (signed)reg[rs];
    else if (strcmp(functStr, "addu")   == SAME) reg[rd] = (unsigned)reg[rt] + (unsigned)reg[rs];
    else if (strcmp(functStr, "sub")    == SAME) reg[rd] = (signed)reg[rt] - (signed)reg[rs];
@@ -156,30 +154,36 @@ void execTypeI(Instruction iStruct, char *functStr, Stats *stats) {
    unsigned op = iStruct.op,
             rs = iStruct.rs,
             rt = iStruct.rt,
-            rd = iStruct.rd,
-            shamt = iStruct.shamt,
-            funct = iStruct.funct,
-            imm = iStruct.imm,
-            addr = iStruct.addr;
+            imm = iStruct.imm;
 
-   if      (strcmp(functStr, "beq")    == SAME)     {pc = (reg[rs] == reg[rt]) ? (pc + 4 + imm) : pc; stats->clocks--;}
-   else if (strcmp(functStr, "bne")    == SAME)     {pc = (reg[rs] != reg[rt]) ? (pc + 4 + imm) : pc; stats->clocks--;}
-   else if (strcmp(functStr, "addi")   == SAME) reg[rd] = (signed)reg[rt] + (signed)imm;
-   else if (strcmp(functStr, "addiu")  == SAME) reg[rd] = (unsigned)reg[rt] + (unsigned)imm;
-   else if (strcmp(functStr, "slti")   == SAME) reg[rd] = ((signed)reg[rs] < (signed)imm) ? TRUE : FALSE;
-   else if (strcmp(functStr, "slti")   == SAME) reg[rd] = ((unsigned)reg[rs] < (unsigned)imm) ? TRUE : FALSE;
-   else if (strcmp(functStr, "andi")   == SAME) reg[rd] = (signed)reg[rt] & (signed)imm;
-   else if (strcmp(functStr, "ori")    == SAME) reg[ra] = (signed)reg[rt] | (signed)imm;
-   else if (strcmp(functStr, "xori")   == SAME) reg[rd] = (signed)reg[rt] ^ (signed)imm;
-   else if (strcmp(functStr, "lui")    == SAME){reg[rd] = mem[imm] & 0xFFFF0000; stats->clocks++;}
-   else if (strcmp(functStr, "lb")     == SAME) reg[rd] = (signed)reg[rt] - (signed)reg[rs];
-   else if (strcmp(functStr, "lh")     == SAME) reg[rd] = (unsigned)reg[rt] - (unsigned)reg[rs];
-   else if (strcmp(functStr, "lw")     == SAME) reg[rd] = reg[rt] & reg[rs];
-   else if (strcmp(functStr, "lbu")    == SAME) reg[rd] = reg[rt] | reg[rs];
-   else if (strcmp(functStr, "lhu")    == SAME) reg[rd] = reg[rt] ^ reg[rs];
-   else if (strcmp(functStr, "sb")     == SAME) reg[rd] = ~(reg[rt] | reg[rs]);
-   else if (strcmp(functStr, "sh")     == SAME) reg[rd] = (signed)reg[rs] < (signed)reg[rt] ? TRUE : FALSE;
-   else if (strcmp(functStr, "sw")     == SAME) reg[rd] = (unsigned)reg[rs] < (unsigned)reg[rt] ? TRUE : FALSE;
+   if      (strcmp(functStr, "beq")    == SAME)     {pc = (reg[rs] == reg[rt]) ? (pc + imm + WORD_SIZE) : pc; stats->clocks--;}
+   else if (strcmp(functStr, "bne")    == SAME)     {pc = (reg[rs] != reg[rt]) ? (pc + imm + WORD_SIZE) : pc; stats->clocks--;}
+   else if (strcmp(functStr, "addi")   == SAME) reg[rt] = (signed)reg[rt] + (signed)imm;
+   else if (strcmp(functStr, "addiu")  == SAME) reg[rt] = (unsigned)reg[rt] + (unsigned)imm;
+   else if (strcmp(functStr, "slti")   == SAME) reg[rt] = ((signed)reg[rs] < (signed)imm) ? TRUE : FALSE;
+   else if (strcmp(functStr, "slti")   == SAME) reg[rt] = ((unsigned)reg[rs] < (unsigned)imm) ? TRUE : FALSE;
+   else if (strcmp(functStr, "andi")   == SAME) reg[rt] = (signed)reg[rt] & (signed)imm;
+   else if (strcmp(functStr, "ori")    == SAME) reg[rt] = (signed)reg[rt] | (signed)imm;
+   else if (strcmp(functStr, "xori")   == SAME) reg[rt] = (signed)reg[rt] ^ (signed)imm;
+   else if (strcmp(functStr, "lui")    == SAME){reg[rt] = mem[imm] & 0xFFFF0000; stats->clocks++;}
+   else if (strcmp(functStr, "lb")     == SAME) reg[rt] = (signed)reg[rt] - (signed)reg[rs];
+   else if (strcmp(functStr, "lh")     == SAME) reg[rt] = (unsigned)reg[rt] - (unsigned)reg[rs];
+   else if (strcmp(functStr, "lw")     == SAME) reg[rt] = reg[rt] & reg[rs];
+   else if (strcmp(functStr, "lbu")    == SAME) reg[rt] = reg[rt] | reg[rs];
+   else if (strcmp(functStr, "lhu")    == SAME) reg[rt] = reg[rt] ^ reg[rs];
+   else if (strcmp(functStr, "sb")     == SAME) reg[rt] = ~(reg[rt] | reg[rs]);
+   else if (strcmp(functStr, "sh")     == SAME) reg[rt] = (signed)reg[rs] < (signed)reg[rt] ? TRUE : FALSE;
+   else if (strcmp(functStr, "sw")     == SAME) reg[rt] = (unsigned)reg[rs] < (unsigned)reg[rt] ? TRUE : FALSE;
+}
+
+void execTypeJ(Instruction iStruct, char *functStr, Stats *stats) {
+   unsigned op = iStruct.op,
+            funct = iStruct.funct,
+            addr = iStruct.addr;  
+   
+   if (strcmp(functStr, "jal")    == SAME){reg[ra] = pc + WORD_SIZE; pc = addr - WORD_SIZE;}
+   else if (strcmp(functStr, "j")      == SAME)       pc = addr - WORD_SIZE;
+         
 }
 
 void execInstruction(unsigned instr, Stats *stats) {
@@ -256,6 +260,8 @@ void printHelp(void) {
 
 int main (const int argc, const char **argv) {
    char cmd[MAX_CHAR];
+   int i = INIT_ADDR;
+   Stats stats = {0};
 
    resetCPU();
    printf("\n");
@@ -276,14 +282,26 @@ int main (const int argc, const char **argv) {
          if (fileLoaded == TRUE) {
             printf("\n   Running file %s...\n", file);
             runFile();
+            i = INIT_ADDR;
+            stats = {0};
          }
          else {
             printf("\n   No file is loaded.\n");
          }
-      }/*
+      }
       else if (strcmp(cmd, "step") == SAME) {
+         if(i < mem_ptr) {
+            printStatistics(stats);
+            printRegisters();
+            execInstruction(mem[i], &stats);
+            i += WORD_SIZE
+         }
+         else {
+            printf("\nEnd of Program\n");
+            
+         }
 
-      }*/
+      }
       else if (strcmp(cmd, "decode") == SAME) {
          if (fileLoaded == FALSE) {
             printf("\n   No file loaded.\n");
