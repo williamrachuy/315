@@ -283,7 +283,7 @@ int main (const int argc, const char **argv) {
             printf("\n   Running file %s...\n", file);
             runFile();
             i = INIT_ADDR;
-            stats = {0};
+            memset(stats, ZERO , sizeof(Stats));
          }
          else {
             printf("\n   No file is loaded.\n");
@@ -298,7 +298,7 @@ int main (const int argc, const char **argv) {
          }
          else {
             printf("\nEnd of Program\n");
-            
+            memset(stats, ZERO , sizeof(int));            
          }
 
       }
