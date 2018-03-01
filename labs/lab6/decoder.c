@@ -103,7 +103,7 @@ unsigned signExtend(unsigned orig){
 // return string that has the pertinent information about the instruction
 void strDecoded(unsigned mem, char *retStr, unsigned PC) {
    // Initialize the strings used for characterization
-   char functStr[8], shamtStr[3], type, conCat[100];
+   char functStr[8], type, conCat[100];
                                                                     
    unsigned op = (mem >> 26) & 0x3F, rs = (mem >> 21) & 0x1F;        // Split up the bits into the instruction sections
    unsigned rt = (mem >> 16) & 0x1F, rd = (mem >> 11) & 0x1F;
