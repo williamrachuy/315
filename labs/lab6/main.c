@@ -223,6 +223,7 @@ void printRegisters(void) {
    int i;
 
    printf("\n");
+   printf("PC = 0x%08X\n", pc);
    for (i = 0; i <= ra; i++)
       printf("   [ %02u - %s ]: 0x%08X\n", i, regName[i], reg[i]);
    printf("\n\n");
@@ -283,7 +284,7 @@ int main (const int argc, const char **argv) {
             printf("\n   Running file %s...\n", file);
             runFile();
             i = INIT_ADDR;
-            stats = {0};
+            memset(&stats, ZERO , sizeof(Stats));
          }
          else {
             printf("\n   No file is loaded.\n");
@@ -291,14 +292,17 @@ int main (const int argc, const char **argv) {
       }
       else if (strcmp(cmd, "step") == SAME) {
          if(i < mem_ptr) {
-            printStatistics(stats);
-            printRegisters();
             execInstruction(mem[i], &stats);
-            i += WORD_SIZE
+            printStatistics(stats);
+            printRegisters();            
+            i += WORD_SIZE;
          }
          else {
             printf("\nEnd of Program\n");
-            
+            i = INIT_ADDR;
+            resetProgCounter();
+            resetRegisters();
+            memset(&stats, ZERO , sizeof(int));            
          }
 
       }
