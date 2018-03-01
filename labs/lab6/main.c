@@ -7,11 +7,13 @@
 #define SAME 0
 #define TRUE 1
 #define FALSE 0
+#define INIT_ADDR 0x00000000
 #define REG_SIZE 32
 #define MEM_SIZE 0x00800000
 #define WORD_SIZE 4
 #define MAX_CHAR 129
 
+// Struct for decoding program file
 typedef struct _mb_hdr {
    char signature[4];
    unsigned int size;
@@ -20,23 +22,29 @@ typedef struct _mb_hdr {
    unsigned char filler2[64 - 16];
 } MB_HDR, *MB_HDR_PTR;
 
+// Struct for runtime statistics
 typedef struct {
    int execs, memRefs, clocks;
 } Stats;
 
+// Struct for instruction code
 typedef struct {
    unsigned op, rs, rt, rd, shamt, funct, imm, addr;
 } Instruction;
 
+// Enumerated type for register lookup
 enum regIndex{zero, at, v0, v1, a0, a1, a2, a3, t0, t1, t2, t3, t4, t5, t6, t7,
    s0, s1, s2, s3, s4, s5, s6, s7, t8, t9, k0, k1, gp, sp, fp, ra};
 
+// Register names as strings for easy lookup and printing
 const char regName[33][4] = {"$zr", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", 
    "$a3", "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", 
    "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9", "$k0", "$k1", "$gp", 
    "$sp", "$fp", "$ra", "unk"};
 
+// Some global variables used by the "system" for run time   
 MB_HDR mb_hdr;
+Stats stats = {ZERO};
 int fileLoaded = FALSE;
 char file[MAX_CHAR];
 unsigned pc,
@@ -45,29 +53,34 @@ unsigned pc,
          reg[REG_SIZE],
          mem[MEM_SIZE];
 
-   pc = INIT_ADDR;
+// Resets program counter
+void resetPC(void) {
    pc = mb_hdr.entry;
 }
 
+// Resets register memory
 void resetRegisters(void) {
    memset(reg, ZERO, sizeof(unsigned) * REG_SIZE);
 }
 
+// Resets program memory, requiring new load
 void resetMemory(void) {
-   memset(mem, ZERO, MEM_SIZE);
    memset(mem, ZERO, sizeof(unsigned) * MEM_SIZE);
 }
 
+// Resets file so a new one can get loaded in
 void resetFile(void) {
    fileLoaded = FALSE;
    mem_ptr = INIT_ADDR;
    memset(file, ZERO, sizeof(char) * MAX_CHAR);
 }
 
+// Resets stats, used for in between runs
 void resetStats(void) {
    memset(&stats, ZERO , sizeof(Stats));
 }
 
+// Resets all the "system" usage, calls the above functions
 void resetCPU(void) {
    resetPC();
    resetFile();
@@ -76,6 +89,7 @@ void resetCPU(void) {
    resetMemory();
 }
 
+// Loads the program data from the file into "system" memory
 void loadLoop(FILE *fd) {
    int valid;
 
@@ -89,6 +103,7 @@ void loadLoop(FILE *fd) {
    } while (mem_ptr < MEM_SIZE);
 }
 
+// Manages file, opens and loads the file while checking for errors along the way
 void loadMemory(void) {
    FILE *fd;
 
@@ -113,17 +128,7 @@ void loadMemory(void) {
    }
 }
 
-// Returns sign extended value of input
-unsigned signEx(unsigned orig){
-   unsigned extended = orig & 0x00FF;
-   
-   if (orig & 0x8000){                 // If MSB set, extend bits
-      extended |= 0xFF00;          // Sign extend
-   }
-   
-   return extended;                    // Return sign extended value
-}
-
+// Creates the instruction parameters, as used by different instruction types
 Instruction makeInstruction(unsigned instr) {
    Instruction iStruct;
 
@@ -139,6 +144,7 @@ Instruction makeInstruction(unsigned instr) {
    return iStruct;
 }
 
+// Executes R type instructions. Each instruction decoded should be self explanatory
 void execTypeR(Instruction iStruct, char *functStr) {
    unsigned rs = iStruct.rs,
             rt = iStruct.rt,
@@ -165,6 +171,7 @@ void execTypeR(Instruction iStruct, char *functStr) {
    else if (strcmp(functStr, "sltu")   == SAME) reg[rd] = ((unsigned)reg[rs] < (unsigned)reg[rt]) ? TRUE : FALSE;
 }
 
+// Executes I type instructions. Each instruction decoded should be self explanatory
 void execTypeI(Instruction iStruct, char *functStr) {
    unsigned rs = iStruct.rs,
             rt = iStruct.rt,
@@ -191,6 +198,7 @@ void execTypeI(Instruction iStruct, char *functStr) {
    else if (strcmp(functStr, "sw")     == SAME){mem[eff] = reg[rt]; stats.memRefs++;}
 }
 
+// Executes J type instructions. Each instruction decoded should be self explanatory
 void execTypeJ(Instruction iStruct, char *functStr) {
    unsigned addr = iStruct.addr;  
    
@@ -199,48 +207,59 @@ void execTypeJ(Instruction iStruct, char *functStr) {
           
 }
 
+// Checks for the type of instruction and calls the appropriate instruction type execution function
 void execInstruction(unsigned instr) {
    char type, functStr[8];
    Instruction iStruct = makeInstruction(instr);
 
+   // Get the type of the instruction first
    getType(iStruct.op, iStruct.funct, &type, functStr);
    
    if(instr == 0x00000000){
-      // nop
+      // Check for nop
    }
    else if(instr == 0x0000000C){
-      // syscall
-      if(reg[v0] == 0x000A) pc = mem_ptr;                                   //Ends the program
+      // syscall. Assumes HALT, other syscalls to be implemented in future. If PC = mem_ptr, the PC is at end of execution
+      if(reg[v0] == 0x000A) pc = mem_ptr;                                   
    }
    else if (type == 'F') {
+      // Indicates an invalid instruction has been reached, however continues with program execution
       printf("   Invalid instruction at 0x%08X\n", pc);
    }
    else if (type == 'R') {
+      // Executes R type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
       stats.execs += 1;
       stats.clocks += 4;
       execTypeR(iStruct, functStr);
    }
    else if (type == 'I') {
+      // Executes I type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
       stats.execs += 1;
       stats.clocks += 4;
       execTypeI(iStruct, functStr);
    }
    else if (type == 'J') {
+      // Executes J type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
       stats.execs += 1;
       stats.clocks += 3;
       execTypeJ(iStruct, functStr);
    }
    else {
+      // Default, shouldn't be reached
       printf("   Invalid instruction at 0x%08X\n", pc);
    }
+   
+   // Always increment PC. Any instruction that assumes an add of +4 (like branches) doesn't do so, as it is done here
    pc += WORD_SIZE;
 }
 
+// Print out them stats
 void printStatistics(void) {
    printf("\nProgram statistics: \n\n   Execs: %d\n   MemRefs: %d\n   Clocks: %d\n",
       stats.execs, stats.memRefs, stats.clocks);
 }
 
+// Print out them reggies too
 void printRegisters(void) {
    int i;
 
@@ -250,11 +269,13 @@ void printRegisters(void) {
    printf("\n\n");
 }
 
+// Run the file until end of program or until a breakpoint is met
 void runFile(void) {
    while (pc < mem_ptr && pc != breakpoint)
       execInstruction(mem[pc]);
 }
 
+// Decode the instructions, doesn't actually run anything. Basically lab 4
 void decodeFile(void) {
    char retStr[128];
 
@@ -274,33 +295,46 @@ void printHelp(void) {
    printf("[ load | file <filename> | run | step | decode | reset | help | quit | brkpt <PC address for breakpoint> ]\n");
 }
 
+// Main loop for execution. Supports a variety of commands, including a few extras
 int main (const int argc, const char **argv) {
    char cmd[MAX_CHAR], retStr[128];
 
+   // Reset CPU for first run
    resetCPU();
    printf("\n");
+
+   // While not end of file on input, keep running (so we have an escape sequence)
    while (feof(stdin) == 0) {
+      // Prompt for command
+
       printf("Enter a command: ");
       scanf("%s", cmd);
+      
       if (strcmp(cmd, "load") == SAME) {
+         // Compare to load input. If so, reset the "system" and load the program into memory
+
          resetCPU();
          scanf("%s", file);
          loadMemory();
          resetPC();
       }
       else if (strcmp(cmd, "file") == SAME) {
+         // Checks if a files is currently loaded
          if (fileLoaded == TRUE)
             printf("\n   \"%s\" is currently loaded.\n", file);
          else
             printf("\n   No file is currently loaded.\n");
       }
       else if (strcmp(cmd, "run") == SAME) {
-         if (fileLoaded == TRUE) {
+         // Runs the program until breakpoint or program runs out (in case syscall for HALT not included)
+ 
+            if (fileLoaded == TRUE) {
             printf("\n   Running file %s...\n", file);
             runFile();
             printStatistics();
             printRegisters();
             
+            // If the program has run out, reset for another run
             if(pc == mem_ptr){
                resetStats();
                resetRegisters();
@@ -312,16 +346,24 @@ int main (const int argc, const char **argv) {
          }
       }
       else if (strcmp(cmd, "step") == SAME) {
+         // Step through the program
          if (fileLoaded == TRUE) {
             if (pc < mem_ptr) {
+               // As long as the PC is less than the final value in the memory, continue
+
+               // Print out the current instruction (handy for debugging)
                printf("   Instruction @ %08X : %08X\n", pc, mem[pc]);
                strDecoded((unsigned)mem[pc], retStr, pc);
                printf("   %s\n\n", retStr);
+               
+               // Execute instruction once and print out stats and registers
                execInstruction(mem[pc]);
                printStatistics();
                printRegisters();
             }
             else {
+               // If end of program, print final stats and indicate the end of program
+               
                printf("\nEnd of Program. Reverting...\n");
                resetStats();
                resetRegisters();
@@ -334,21 +376,29 @@ int main (const int argc, const char **argv) {
 
       }
       else if (strcmp(cmd, "decode") == SAME) {
+         // Print out the decoded version of the program, as done in lab 4
+         
          if (fileLoaded == TRUE)
             decodeFile();
          else
             printf("\n   No file loaded.\n");
       }
       else if (strcmp(cmd, "reset") == SAME) {
+         // reset CPU on command, clearing out program and all register and memory
+         
          resetCPU();
       }
       else if (strcmp(cmd, "help") == SAME) {
+         // Print out command list for "system"
+         
          printHelp();
       }
       else if (strcmp(cmd, "quit") == SAME) {
          break;
       }
       else if (strcmp(cmd, "brkpt") == SAME) {
+         // Allows user to enter the PC value to halt a run, so as to debug the program/ "system"
+         
          printf("\n Enter PC address to break at during run: ");
          
          if (scanf("%hX", &breakpoint) != 1){
