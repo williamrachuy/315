@@ -68,10 +68,11 @@ static void getJFunct(unsigned op, char *functStr) {
 
 // Get instruction type and function name, unless invalid
 void getType(unsigned op, unsigned funct, char *type, char *functStr) {
+
    if (op != 0x00){                    // If not a R type, check for I and J
       getIFunct(op, functStr);         // Get I type, sets "" if not I
       *type = 'I';                     // Set I temporarily
-   
+      
       if(strcmp(functStr, "") == 0){   // Check if function found
          *type = 'J';                  // If not, set J temporarily
          getJFunct(op, functStr);      // Get J type, sets "" if not J
@@ -117,9 +118,12 @@ void strDecoded(unsigned mem, char *retStr, unsigned PC) {
    if(type == 'F'){                                                  // If op code not recognized, output invalid instruction
       strcpy(retStr, "Invalid instruction");
    }
+   else if (mem == 0x00000000){
+      sprintf(retStr, "Opcode: 0x%02X, No Operation (%s)", op, "nop");
+   }
    else if (type == 'R' && (strcmp(functStr, "other") == 0           // If type R and "syscall" or "other", don't output the _registers
       || strcmp(functStr, "syscall") == 0)){                         // Since they don't have any significance
-      sprintf(retStr, "Opcode: 0x%02X, %c Type (%s)", op, type, functStr); 
+      sprintf(retStr, "Opcode: 0x%02X, %s", op, functStr); 
    }
    else if (type == 'R') {                                           // If type R, output all information _regarding R type instructions
    

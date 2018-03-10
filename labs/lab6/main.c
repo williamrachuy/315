@@ -96,11 +96,11 @@ void loadLoop(FILE *fd) {
    do {
       valid = fread((void *)&mem[mem_ptr],
          WORD_SIZE, 1, fd);
-      if (valid)
+      //if (valid)
          mem_ptr += WORD_SIZE;
-      else
-         break;
-   } while (mem_ptr < MEM_SIZE);
+      //else
+      //   break;
+   } while (mem_ptr < MEM_SIZE && mem_ptr < mb_hdr.size);
 }
 
 // Manages file, opens and loads the file while checking for errors along the way
@@ -144,6 +144,28 @@ Instruction makeInstruction(unsigned instr) {
    return iStruct;
 }
 
+// Returns sign extended value of input
+unsigned signExtendHalfWord(unsigned orig){
+   unsigned extended = orig & 0x0000FFFF;
+   
+   if (orig & 0x8000){                 // If MSB set, extend bits
+      extended |= 0xFFFF0000;          // Sign extend
+   }
+   
+   return extended;                    // Return sign extended value
+}
+
+// Returns sign extended value of input
+unsigned signExtendByte(unsigned orig){
+   unsigned extended = orig & 0x000000FF;
+   
+   if (orig & 0x80){                 // If MSB set, extend bits
+      extended |= 0xFFFFFF00;          // Sign extend
+   }
+   
+   return extended;                    // Return sign extended value
+}
+
 // Executes R type instructions. Each instruction decoded should be self explanatory
 void execTypeR(Instruction iStruct, char *functStr) {
    unsigned rs = iStruct.rs,
@@ -155,14 +177,14 @@ void execTypeR(Instruction iStruct, char *functStr) {
    else if (strcmp(functStr, "srl")    == SAME) reg[rd] =  (unsigned)reg[rt] >> shamt;
    else if (strcmp(functStr, "sra")    == SAME) reg[rd] =    (signed)reg[rt] >> shamt;
    else if (strcmp(functStr, "sllv")   == SAME) reg[rd] =  (unsigned)reg[rt] << reg[rs];
-   else if (strcmp(functStr, "srlv")   == SAME) reg[rd] =  (unsigned)reg[rt] << reg[rs];
+   else if (strcmp(functStr, "srlv")   == SAME) reg[rd] =  (unsigned)reg[rt] >> reg[rs];
    else if (strcmp(functStr, "srav")   == SAME) reg[rd] =    (signed)reg[rt] >> reg[rs];
    else if (strcmp(functStr, "jr")     == SAME)      pc =  reg[rs] - WORD_SIZE;
    else if (strcmp(functStr, "jalr")   == SAME){reg[ra] =  pc + WORD_SIZE; pc = reg[rs] - WORD_SIZE;}
    else if (strcmp(functStr, "add")    == SAME) reg[rd] =  (signed)  reg[rt] +   (signed)reg[rs];
    else if (strcmp(functStr, "addu")   == SAME) reg[rd] =  (unsigned)reg[rt] + (unsigned)reg[rs];
-   else if (strcmp(functStr, "sub")    == SAME) reg[rd] =    (signed)reg[rt] -   (signed)reg[rs];
-   else if (strcmp(functStr, "subu")   == SAME) reg[rd] =  (unsigned)reg[rt] - (unsigned)reg[rs];
+   else if (strcmp(functStr, "sub")    == SAME) reg[rd] =    (signed)reg[rs] -   (signed)reg[rt];
+   else if (strcmp(functStr, "subu")   == SAME) reg[rd] =  (unsigned)reg[rs] - (unsigned)reg[rt];
    else if (strcmp(functStr, "and")    == SAME) reg[rd] =            reg[rt] & reg[rs];
    else if (strcmp(functStr, "or")     == SAME) reg[rd] =            reg[rt] | reg[rs];
    else if (strcmp(functStr, "xor")    == SAME) reg[rd] =            reg[rt] ^ reg[rs];
@@ -171,30 +193,83 @@ void execTypeR(Instruction iStruct, char *functStr) {
    else if (strcmp(functStr, "sltu")   == SAME) reg[rd] = ((unsigned)reg[rs] < (unsigned)reg[rt]) ? TRUE : FALSE;
 }
 
+// Determines the shift amount to access bytes or half. Memsize is either 2 for halfwords, or 4 for byte memory access
+unsigned memAddrAdjust(unsigned memAddress){
+   unsigned shiftAmt;
+   
+   shiftAmt = memAddress % 4;
+   memAddress -= shiftAmt;
+   return shiftAmt;
+}
+
+// Gets the effective 32 bit value from memory, accounting for the 4 byte per address mem storage method.
+// Each memory value is located in increments of 4, so returning a value that is not at a address multiple of 4
+// requires grabbing a two portions from the adjacent 2 addresses.
+// For example, grabbing word at address 0x00000005 requires grabbing upper byte of location 0x00000004, and upper 3 bytes
+// from location 0x00000008, and then combining the two values to make an effective word value.
+// The project was started using this memory addressing schema based on how the previous lab was setup, and it was easier
+// to do this conversion then to change the entire lab to have sequential byte addresses
+signed getMemoryValue(unsigned memAddress){
+   unsigned lowAddressVal, highAddressVal;
+   unsigned memShiftAmt = memAddrAdjust(memAddress);
+   
+   // If the memory address is a multiple of 4, just return the word at that location
+   if(memShiftAmt == 0) return mem[memAddress];
+   
+   // Lower address value grabs the byte quantity needed and shifts to place into lower portion of the return word
+   lowAddressVal = mem[memAddress - memShiftAmt] >> memShiftAmt * 8;
+
+   // Higher address value grabs the byte quantity needed and shifts to place into upper portion of the return word
+   highAddressVal = mem[memAddress + (4- memShiftAmt)] << ((4 - memShiftAmt) * 8);
+    
+   return lowAddressVal | highAddressVal;
+}
+
+// Sets memory, like the above function. Confusing for the way we stored memory
+void setMemoryValue(unsigned memAddress, signed value, unsigned size){
+   unsigned lowAddressVal, highAddressVal;
+   unsigned memShiftAmt = memAddrAdjust(memAddress);
+   
+   if(memShiftAmt == 0) mem[memAddress] = (mem[memAddress]  & (0xFFFFFFFF << size * 8)) | (value & (0xFFFFFFFF >> size * 8));
+   else if(size == 1) {mem[memAddress - memShiftAmt] = (mem[memAddress - memShiftAmt] & (0x0000FF00 << ((memShiftAmt - 1) * 8)) | ((value & 0x000000FF) << (memShiftAmt * 8)));}
+   else if(size == 2) {
+      mem[memAddress - memShiftAmt] = (mem[memAddress - memShiftAmt] & (0x0000FFFF << (memShiftAmt * 8)) | (value & 0x0000FFFF) << (memShiftAmt * 8));
+      
+      if(memShiftAmt == 3){
+         mem[memAddress + memShiftAmt] = (mem[memAddress + memShiftAmt] & 0x000000FF) | (value >> 8 & 0x000000FF);
+      }
+   }
+   else if(size == 4){
+      mem[memAddress - memShiftAmt] = (mem[memAddress - memShiftAmt] & (0xFFFFFFFF << (memShiftAmt * 8)) | (value << (memShiftAmt * 8)));
+      mem[memAddress + memShiftAmt] = (mem[memAddress + memShiftAmt] & (0xFFFFFFFF >> ((4-memShiftAmt) * 8)) | (value >> ((4-memShiftAmt) * 8)));
+   }      
+}
+
 // Executes I type instructions. Each instruction decoded should be self explanatory
 void execTypeI(Instruction iStruct, char *functStr) {
    unsigned rs = iStruct.rs,
             rt = iStruct.rt,
             imm = iStruct.imm,
-            eff = reg[iStruct.rs] + (signed)iStruct.imm;
+            eff = reg[iStruct.rs] + signExtendHalfWord(iStruct.imm),
+            memShiftAmt;
 
    if      (strcmp(functStr, "beq")    == SAME)     {pc =  (reg[rs] == reg[rt]) ? (pc + (short int)(imm << 2)) : pc; stats.clocks--;}
    else if (strcmp(functStr, "bne")    == SAME)     {pc =  (reg[rs] != reg[rt]) ? (pc + (short int)(imm << 2)) : pc; stats.clocks--;}
-   else if (strcmp(functStr, "addi")   == SAME) reg[rt] =    (signed)reg[rs] +   (signed)imm;
+   else if (strcmp(functStr, "addi")   == SAME) reg[rt] =    (signed)reg[rs] +   signExtendHalfWord(imm);
    else if (strcmp(functStr, "addiu")  == SAME) reg[rt] =  (unsigned)reg[rs] + (unsigned)imm;
-   else if (strcmp(functStr, "slti")   == SAME) reg[rt] =   ((signed)reg[rs] <   (signed)imm) ? TRUE : FALSE;
+   else if (strcmp(functStr, "slti")   == SAME) reg[rt] =   ((signed)reg[rs] <   signExtendHalfWord(imm)) ? TRUE : FALSE;
    else if (strcmp(functStr, "slti")   == SAME) reg[rt] = ((unsigned)reg[rs] < (unsigned)imm) ? TRUE : FALSE;
-   else if (strcmp(functStr, "andi")   == SAME) reg[rt] =    (signed)reg[rs] &   (signed)imm;
-   else if (strcmp(functStr, "ori")    == SAME) reg[rt] =    (signed)reg[rs] |   (signed)imm;
-   else if (strcmp(functStr, "xori")   == SAME) reg[rt] =    (signed)reg[rs] ^   (signed)imm;
+   else if (strcmp(functStr, "andi")   == SAME) reg[rt] =    (signed)reg[rs] &   imm;
+   else if (strcmp(functStr, "ori")    == SAME) reg[rt] =    (signed)reg[rs] |   imm;
+   else if (strcmp(functStr, "xori")   == SAME) reg[rt] =    (signed)reg[rs] ^   imm;
    else if (strcmp(functStr, "lui")    == SAME){reg[rt] = (imm << 16) & 0xFFFF0000; stats.clocks++;}
-   else if (strcmp(functStr, "lb")     == SAME){reg[rt] =   (signed)((mem[eff & 0xFFFFFFFC] >> (4 *  (eff % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lh")     == SAME){reg[rt] =   (signed)((mem[eff & 0xFFFFFFFC] >> (16 * (eff % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lw")     == SAME){reg[rt] =   (signed)  mem[eff & 0xFFFFFFFC]                                   ; stats.memRefs++; stats.clocks++;}
+   else if (strcmp(functStr, "lb")     == SAME){reg[rt] = signExtendByte(getMemoryValue(eff) & 0x000000FF); stats.memRefs++; stats.clocks++;}
+   else if (strcmp(functStr, "lh")     == SAME){reg[rt] = signExtendHalfWord(getMemoryValue(eff) & 0x0000FFFF); stats.memRefs++; stats.clocks++;}
+   else if (strcmp(functStr, "lw")     == SAME){reg[rt] = getMemoryValue(eff); stats.memRefs++; stats.clocks++;}
    else if (strcmp(functStr, "lbu")    == SAME){reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC] >> (4 *  (eff % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;}
    else if (strcmp(functStr, "lhu")    == SAME){reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC + imm] >> (16 * (eff % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "sb")     == SAME){mem[eff] = reg[rt] & 0x000000FF + signExtend(imm); stats.memRefs++;}
-   else if (strcmp(functStr, "sh")     == SAME){mem[eff] = reg[rt] & 0x0000FFFF + signExtend(imm); stats.memRefs++;}
+   else if (strcmp(functStr, "sb")     == SAME){mem[eff] = reg[rt] & 0x000000FF + signExtendHalfWord(imm); stats.memRefs++;}
+   else if (strcmp(functStr, "sh")     == SAME){mem[eff] = reg[rt] & 0x0000FFFF + signExtendHalfWord(imm); stats.memRefs++;}
    else if (strcmp(functStr, "sw")     == SAME){mem[eff] = reg[rt]; stats.memRefs++;}
 }
 
@@ -217,6 +292,8 @@ void execInstruction(unsigned instr) {
    
    if(instr == 0x00000000){
       // Check for nop
+      stats.execs += 1;
+      stats.clocks += 3;
    }
    else if(instr == 0x0000000C){
       // syscall. Assumes HALT, other syscalls to be implemented in future. If PC = mem_ptr, the PC is at end of execution
@@ -269,8 +346,13 @@ void printRegisters(void) {
    printf("\n\n");
 }
 
-// Run the file until end of program or until a breakpoint is met
+// Run the file until end of program or until a breakpoint is met. If currently at a breakpoint, 
+// Execute an instruction to get past the breakpoint and then continue with the program
 void runFile(void) {
+   if(pc == breakpoint){
+      execInstruction(mem[pc]);
+   }
+   
    while (pc < mem_ptr && pc != breakpoint)
       execInstruction(mem[pc]);
 }
@@ -278,16 +360,16 @@ void runFile(void) {
 // Decode the instructions, doesn't actually run anything. Basically lab 4
 void decodeFile(void) {
    char retStr[128];
+   unsigned i = mb_hdr.entry;          // Set iterator to first instruction
 
    printf("\nDecoded instructions:\n\n");
-   while (pc < mem_ptr) {
-      printf("   Instruction @ %08X : %08X\n", pc, mem[pc]);
-      strDecoded((unsigned)mem[pc], retStr, pc);
+   while (i < mem_ptr) {
+      printf("   Instruction @ %08X : %08X\n", i, mem[i]);
+      strDecoded((unsigned)mem[i], retStr, i);
       printf("   %s\n\n", retStr);
-      pc += WORD_SIZE;
+      i += WORD_SIZE;
    }
    printf("\n");
-   pc = mb_hdr.entry;
 }
 
 // Prints an explanation of the program commands
@@ -399,10 +481,11 @@ int main (const int argc, const char **argv) {
       else if (strcmp(cmd, "brkpt") == SAME) {
          // Allows user to enter the PC value to halt a run, so as to debug the program/ "system"
          
-         printf("\n Enter PC address to break at during run: ");
+         //printf("\n Enter PC address to break at during run: ");
          
-         if (scanf("%hX", &breakpoint) != 1){
-            printf("Invalid entry!\n");
+         if ((scanf("%hX", &breakpoint) != 1) || (breakpoint % 4 != 0)){
+            breakpoint == 0;
+            printf("Invalid breakpoint entry!\n");
          }
       }
       else {

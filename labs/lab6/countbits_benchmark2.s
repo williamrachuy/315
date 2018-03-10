@@ -18,7 +18,7 @@ main:	lw	$a0, test1	# Load test data using offset from segment, Rs=0
 
 #	can't use pseudoinstructions, because they're not implemented in this lab project!
 
-	or	$t0, $zero, $v0	# save $v0 in $t0, dangit, because the HALT cmd wipes it out!
+	or	$t0, $zero, $v0	# save $v0 in $t0, dangit, bsecause the HALT cmd wipes it out!
 	ori	$v0, $zero, 10	# TRAP HALT; whose bright idea was it to pass codes
 	syscall			# in the $v registers?
 
