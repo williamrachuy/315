@@ -1,132 +1,295 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "decoder.h"
+#include "CPU.h"
+#include "ProgramMem.h"
 
-#define ZERO 0
-#define SAME 0
-#define TRUE 1
-#define FALSE 0
-#define INIT_ADDR 0x00000000
-#define REG_SIZE 32
-#define MEM_SIZE 0x00800000
-#define WORD_SIZE 4
-#define MAX_CHAR 129
+ID_IEIF_ID_basket F_D;
+ID_IE_basket D_E;
+IE_MEM_basket E_M;
+MEM_WB_basket M_W;
 
-// Struct for decoding program file
-typedef struct _mb_hdr {
-   char signature[4];
-   unsigned int size;
-   unsigned int entry;
-   unsigned int filler1;
-   unsigned char filler2[64 - 16];
-} MB_HDR, *MB_HDR_PTR;
-
-// Struct for runtime statistics
-typedef struct {
-   int execs, memRefs, clocks;
-} Stats;
-
-// Struct for instruction code
-typedef struct {
-   unsigned op, rs, rt, rd, shamt, funct, imm, addr;
-} Instruction;
-
-// Enumerated type for register lookup
-enum regIndex{zero, at, v0, v1, a0, a1, a2, a3, t0, t1, t2, t3, t4, t5, t6, t7,
-   s0, s1, s2, s3, s4, s5, s6, s7, t8, t9, k0, k1, gp, sp, fp, ra};
-
-// Register names as strings for easy lookup and printing
-const char regName[33][4] = {"$zr", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", 
-   "$a3", "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", 
-   "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9", "$k0", "$k1", "$gp", 
-   "$sp", "$fp", "$ra", "unk"};
-
-// Some global variables used by the "system" for run time   
-MB_HDR mb_hdr;
-Stats stats = {ZERO};
-int fileLoaded = FALSE;
-char file[MAX_CHAR];
-unsigned pc,
-         breakpoint,
-         mem_ptr,
-         reg[REG_SIZE],
-         mem[MEM_SIZE];
-
-// Resets program counter
-void resetPC(void) {
-   pc = mb_hdr.entry;
-}
-
-// Resets register memory
-void resetRegisters(void) {
-   memset(reg, ZERO, sizeof(unsigned) * REG_SIZE);
-}
-
-// Resets program memory, requiring new load
-void resetMemory(void) {
-   memset(mem, ZERO, sizeof(unsigned) * MEM_SIZE);
-}
-
-// Resets file so a new one can get loaded in
-void resetFile(void) {
-   fileLoaded = FALSE;
-   mem_ptr = INIT_ADDR;
-   memset(file, ZERO, sizeof(char) * MAX_CHAR);
-}
-
-// Resets stats, used for in between runs
-void resetStats(void) {
-   memset(&stats, ZERO , sizeof(Stats));
-}
-
-// Resets all the "system" usage, calls the above functions
-void resetCPU(void) {
-   resetPC();
-   resetFile();
-   resetRegisters();
-   resetStats();
-   resetMemory();
-}
-
-// Loads the program data from the file into "system" memory
-void loadLoop(FILE *fd) {
-   int valid;
-
-   do {
-      valid = fread((void *)&mem[mem_ptr],
-         WORD_SIZE, 1, fd);
-      //if (valid)
-         mem_ptr += WORD_SIZE;
-      //else
-      //   break;
-   } while (mem_ptr < MEM_SIZE && mem_ptr < mb_hdr.size);
-}
-
-// Manages file, opens and loads the file while checking for errors along the way
-void loadMemory(void) {
-   FILE *fd;
-
-   if ((fd = fopen(file, "rb")) != NULL) {
-      fread((void *)&mb_hdr, sizeof(MB_HDR), 1, fd);
+void if(){
+   
+   if(pc < mem_ptr){
+      F_D.dInstr = makeInstruction(mem[pc]);
+   
+      F_D.PC_curr = pc;
+      
+      pc += 4;
+      
+      F_D.active = true;
+      
    }
    else {
-      fprintf(stderr, "\n   Couldn't load file.\n");
-      resetCPU();
-      return;
-   }
-   if (strcmp(mb_hdr.signature, "~MB") == SAME) {
-      printf("\n   Loaded \"%s\", program size = %d bytes.\n", file, mb_hdr.size);
-      fileLoaded = TRUE;
-      loadLoop(fd);
-      fclose(fd);
-   }
-   else {
-      fprintf(stderr, "\n   \"%s\" is not a MIPS ASM binary file.\n", file);
-      resetCPU();
-      return;
+      F_D.active = false;
+      
    }
 }
+
+void id(){
+   
+   if(F_D.active){
+      InstructionCopy(F_D.dInstr, *(D_E.dInstr));
+      getType(ID_IE.dInstr.op, ID_IE.dInstr.funct, *(F_D.dInstr.type), *(ID_IE.functStr));
+      
+      // Indicate that next clock will have an execute operation
+      D_E.active = true;      
+      
+      // Depending on the instruction type, we will fill a different struct for the instruction decoding
+      if(type == 'I'){
+         D_E.iData.rtAddr = F_D.dInstr.rt;
+         D_E.iData.rs = reg[F_D.dInstr.rs];
+         D_E.iData.rt = reg[F_D.dInstr.rt];
+         D_E.iData.imm = F_D.dInstr.imm;
+         D_E.iData.signExImmed = signExtendHalfWord(F_D.dInstr.imm);
+      }
+      else if(type == 'J'){
+         D_E.jData.address = F_D.dInstr.addr; 
+      }
+      else if(type == 'R'){
+         D_E.rData.rdAddr = F_D.dInstr.rd;
+         D_E.rData.rs = reg[F_D.dInstr.rs];
+         D_E.rData.rt = reg[F_D.dInstr.rt];
+         D_E.rData.rd = reg[F_D.dInstr.rd];
+         D_E.rData.shamt = F_D.dInstr.shamt;
+      }
+      else {
+         D_E.active = false;
+      }
+      
+
+   }
+   else{
+      D_E.active = false;
+   }
+   
+   
+}
+
+
+void ItypeExecute(){
+   
+   /*unsigned rs = iStruct.rs,
+            rt = iStruct.rt,
+            imm = iStruct.imm,
+            eff = reg[iStruct.rs] + signExtendHalfWord(iStruct.imm),
+            memShiftAmt;*/
+            
+   // I type will store any operations in rt, if the operation calls for it
+   E_M.writeBackReg = D_E.iData.rtAddr;   
+   
+   
+   if (strcmp(functStr, "beq") == SAME){
+      if(reg[rs] == reg[rt]){ 
+         pc =  PC_curr + (short int)(imm << 2);
+         F_D.active = false;                    // Flush the pipe
+         D_E.active = false;                    // Flush the pipe
+      }    
+
+      E_M.active = false;                       // Branch has no mem cycle
+      E_M.is_WB = false;
+   }
+   else if (strcmp(functStr, "bne") == SAME){
+      if (reg[rs] != reg[rt]){
+         pc = PC_curr + (short int)(imm << 2);
+         
+         F_D.active = FALSE;                    // Flush the pipe
+         D_E.active = FALSE;                    // Flush the pipe
+      }
+      
+      E_M.active = FALSE;                    // Branch has no mem cycle
+      E_M.is_WB = FALSE;                     // No Writeback state
+   }
+   else if (strcmp(functStr, "addi")   == SAME){
+      // Writeback cycle, no memory access
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue =    D_E.iData.rs +   D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "addiu")  == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state   
+      
+      E_M.writeBackValue =  D_E.iData.rs + D_E.iData.imm;
+   }
+   else if (strcmp(functStr, "slti")   == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue =   ((signed)D_E.iData.rs <   (signed)D_E.iData.signExImmed) ? 1 : 0;
+   }
+   else if (strcmp(functStr, "sltiu")   == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue = (D_E.iData.rs < D_E.iData.imm) ? 1 : 0;
+   }
+   else if (strcmp(functStr, "andi")   == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue =    D_E.iData.rs &   D_E.iData.imm;
+   }
+   else if (strcmp(functStr, "ori")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue =    D_E.iData.rs |   D_E.iData.imm;
+   }
+   else if (strcmp(functStr, "xori")   == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // No mem state
+      
+      E_M.writeBackValue =    D_E.iData.rs ^   D_E.iData.imm;
+   }
+   else if (strcmp(functStr, "lui")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // Need a mem state      
+   }
+   else if (strcmp(functStr, "lb")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "lh")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "lw")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "lbu")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "lhu")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+   }
+   else if (strcmp(functStr, "sb")     == SAME){
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+      writeBackValue = reg[D_E.iData.rt] & 0x000000FF + signExtendHalfWord(imm); stats.memRefs++;
+   }
+   else if (strcmp(functStr, "sh")     == SAME){
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+      writeBackValue = reg[D_E.iData.rt] & 0x0000FFFF + signExtendHalfWord(imm); stats.memRefs++;
+   }
+   else if (strcmp(functStr, "sw")     == SAME){
+      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+      writeBackValue = reg[D_E.iData.rt]; stats.memRefs++;
+   }
+   
+}
+
+void ItypeMem(){
+
+   stats.memRefs++;
+
+   if (strcmp(functStr, "lb")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      M_W.writeBackValue = signExtendByte(getMemoryValue(E_M.memoryAddress) & 0x000000FF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lh")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      M_W.writeBackValue = signExtendHalfWord(getMemoryValue(E_M.memoryAddress) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lw")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      M_W.writeBackValue = getMemoryValue(E_M.memoryAddress); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lbu")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (4 *  (E_M.memoryAddress % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lhu")    == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = TRUE;                    // Need a mem state  
+      
+      M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (16 * (E_M.memoryAddress % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
+   }
+}
+
+
+void ex(){
+   
+   InstructionCopy(D_E.dInstr, *(E_M.dInstr));        // Copy the decoded instruction to Exec->Mem basket
+   
+   if(D_E.active){
+      E_M.active = true;
+      
+      if(D_E.type == 'I'){
+         ItypeExecute();
+      }
+      else if(D_E.type == 'J'){
+         
+      }
+      else if(D_E.type == 'R'){
+         
+      }
+      else if(D_E.type == 'F'){
+         
+      }
+   }
+   else{
+      E_M.active = false;
+   }
+   
+}
+
+void mem(){
+   
+         if(type == 'I'){
+         
+      }
+      else if(type == 'J'){
+         
+      }
+      else if(type == 'R'){
+         
+      }
+      else if(type == 'F'){
+         
+      }
+   
+}
+
+void wb(){
+   
+         if(type == 'I'){
+         
+      }
+      else if(type == 'J'){
+         
+      }
+      else if(type == 'R'){
+         
+      }
+      else if(type == 'F'){
+         
+      }
+   
+}
+
 
 // Creates the instruction parameters, as used by different instruction types
 Instruction makeInstruction(unsigned instr) {
@@ -143,6 +306,7 @@ Instruction makeInstruction(unsigned instr) {
 
    return iStruct;
 }
+
 
 // Returns sign extended value of input
 unsigned signExtendHalfWord(unsigned orig){
@@ -192,6 +356,11 @@ void execTypeR(Instruction iStruct, char *functStr) {
    else if (strcmp(functStr, "slt")    == SAME) reg[rd] =   ((signed)reg[rs] <   (signed)reg[rt]) ? TRUE : FALSE;
    else if (strcmp(functStr, "sltu")   == SAME) reg[rd] = ((unsigned)reg[rs] < (unsigned)reg[rt]) ? TRUE : FALSE;
 }
+
+
+
+
+
 
 // Determines the shift amount to access bytes or half. Memsize is either 2 for halfwords, or 4 for byte memory access
 unsigned memAddrAdjust(unsigned memAddress){
@@ -328,171 +497,4 @@ void execInstruction(unsigned instr) {
    
    // Always increment PC. Any instruction that assumes an add of +4 (like branches) doesn't do so, as it is done here
    pc += WORD_SIZE;
-}
-
-// Print out them stats
-void printStatistics(void) {
-   printf("\nProgram statistics: \n\n   Execs: %d\n   MemRefs: %d\n   Clocks: %d\n",
-      stats.execs, stats.memRefs, stats.clocks);
-}
-
-// Print out them reggies too
-void printRegisters(void) {
-   int i;
-
-   printf("\n");
-   for (i = 0; i <= ra; i++)
-      printf("   [ %02u - %s ]: 0x%08X\n", i, regName[i], reg[i]);
-   printf("\n\n");
-}
-
-// Run the file until end of program or until a breakpoint is met. If currently at a breakpoint, 
-// Execute an instruction to get past the breakpoint and then continue with the program
-void runFile(void) {
-   if(pc == breakpoint){
-      execInstruction(mem[pc]);
-   }
-   
-   while (pc < mem_ptr && pc != breakpoint)
-      execInstruction(mem[pc]);
-}
-
-// Decode the instructions, doesn't actually run anything. Basically lab 4
-void decodeFile(void) {
-   char retStr[128];
-   unsigned i = mb_hdr.entry;          // Set iterator to first instruction
-
-   printf("\nDecoded instructions:\n\n");
-   while (i < mem_ptr) {
-      printf("   Instruction @ %08X : %08X\n", i, mem[i]);
-      strDecoded((unsigned)mem[i], retStr, i);
-      printf("   %s\n\n", retStr);
-      i += WORD_SIZE;
-   }
-   printf("\n");
-}
-
-// Prints an explanation of the program commands
-void printHelp(void) {
-   printf("[ load | file <filename> | run | step | decode | reset | help | quit | brkpt <PC address for breakpoint> ]\n");
-}
-
-// Main loop for execution. Supports a variety of commands, including a few extras
-int main (const int argc, const char **argv) {
-   char cmd[MAX_CHAR], retStr[128];
-
-   // Reset CPU for first run
-   resetCPU();
-   printf("\n");
-
-   // While not end of file on input, keep running (so we have an escape sequence)
-   while (feof(stdin) == 0) {
-      // Prompt for command
-
-      printf("Enter a command: ");
-      scanf("%s", cmd);
-      
-      if (strcmp(cmd, "load") == SAME) {
-         // Compare to load input. If so, reset the "system" and load the program into memory
-
-         resetCPU();
-         scanf("%s", file);
-         loadMemory();
-         resetPC();
-      }
-      else if (strcmp(cmd, "file") == SAME) {
-         // Checks if a files is currently loaded
-         if (fileLoaded == TRUE)
-            printf("\n   \"%s\" is currently loaded.\n", file);
-         else
-            printf("\n   No file is currently loaded.\n");
-      }
-      else if (strcmp(cmd, "run") == SAME) {
-         // Runs the program until breakpoint or program runs out (in case syscall for HALT not included)
- 
-            if (fileLoaded == TRUE) {
-            printf("\n   Running file %s...\n", file);
-            runFile();
-            printStatistics();
-            printRegisters();
-            
-            // If the program has run out, reset for another run
-            if(pc == mem_ptr){
-               resetStats();
-               resetRegisters();
-               resetPC();
-            }
-         }
-         else {
-            printf("\n   No file is loaded.\n");
-         }
-      }
-      else if (strcmp(cmd, "step") == SAME) {
-         // Step through the program
-         if (fileLoaded == TRUE) {
-            if (pc < mem_ptr) {
-               // As long as the PC is less than the final value in the memory, continue
-
-               // Print out the current instruction (handy for debugging)
-               printf("   Instruction @ %08X : %08X\n", pc, mem[pc]);
-               strDecoded((unsigned)mem[pc], retStr, pc);
-               printf("   %s\n\n", retStr);
-               
-               // Execute instruction once and print out stats and registers
-               execInstruction(mem[pc]);
-               printStatistics();
-               printRegisters();
-            }
-            else {
-               // If end of program, print final stats and indicate the end of program
-               
-               printf("\nEnd of Program. Reverting...\n");
-               resetStats();
-               resetRegisters();
-               resetPC();
-            }
-         }
-         else {
-            printf("\n   No file is loaded.\n");
-         }
-
-      }
-      else if (strcmp(cmd, "decode") == SAME) {
-         // Print out the decoded version of the program, as done in lab 4
-         
-         if (fileLoaded == TRUE)
-            decodeFile();
-         else
-            printf("\n   No file loaded.\n");
-      }
-      else if (strcmp(cmd, "reset") == SAME) {
-         // reset CPU on command, clearing out program and all register and memory
-         
-         resetCPU();
-      }
-      else if (strcmp(cmd, "help") == SAME) {
-         // Print out command list for "system"
-         
-         printHelp();
-      }
-      else if (strcmp(cmd, "quit") == SAME) {
-         break;
-      }
-      else if (strcmp(cmd, "brkpt") == SAME) {
-         // Allows user to enter the PC value to halt a run, so as to debug the program/ "system"
-         
-         //printf("\n Enter PC address to break at during run: ");
-         
-         if ((scanf("%hX", &breakpoint) != 1) || (breakpoint % 4 != 0)){
-            breakpoint == 0;
-            printf("Invalid breakpoint entry!\n");
-         }
-      }
-      else {
-         printf("\n   Invalid command.\n");
-      }
-      printf("\n");
-   }
-
-   exit(EXIT_SUCCESS);
 }

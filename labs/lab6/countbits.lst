@@ -1,0 +1,60 @@
+mips_asm Version 1.0h
+Source file: countbits_benchmark2.s
+Object file: countbits_benchmark2.mb
+                         #  This is the countbits program, modified to be used as a benchmark
+                         #  for the 315 lab projects.
+                         
+                         
+                         # Here's some random test data:
+                         # remnants from SPIM test:
+                         
+           ???????? .data
+[00000000] 0001004F test1:	.word	0x0001004F	# test data : to count bits
+                         
+           ???????? .text				# Begin body of code
+                         
+                         # This test driver just loads a 32-bit word to get it's bits counted
+                         
+[00000004] 8C040000 main:	lw	$a0, test1	# Load test data using offset from segment, Rs=0
+                         
+[00000008] 0C000006 	jal	countbits	# Go count the bits in $a0
+                         
+                         #	can't use pseudoinstructions, because they're not implemented in this lab project!
+                         
+[0000000C] 00024025 	or	$t0, $zero, $v0	# save $v0 in $t0, dangit, because the HALT cmd wipes it out!
+[00000010] 3402000A 	ori	$v0, $zero, 10	# TRAP HALT; whose bright idea was it to pass codes
+[00000014] 0000000C 	syscall			# in the $v registers?
+                         
+                         # countbits This function counts the number of '1' bits in a 32 bit word.
+                         # It simply returns the number of 1's found.
+                         
+                         # Count bits in $a0, returning $v0 as the count
+                         
+                         # first, the "setup"
+                         
+[00000018] 00001024 countbits:	and $v0, $zero, $zero	# Initialize counter in $v0
+                         
+[0000001C] 34080001 	ori	$t0, $zero, 1	# Initialize with a 32-bit mask with a '1' in the low bit of $t0
+                         
+                         # now, the loop to count 1's:
+                         
+[00000020] 01044824 loop:	and	$t1, $t0, $a0	# see if the bit is on
+[00000024] 11200001 	beq	$t1, $zero, notset	# branch if bit was not set	
+[00000028] 20420001 	addi	$v0, $v0, 1	# increment counter in $v0
+[0000002C] 00084040 notset:	sll	$t0, $t0, 1	# Shift the mask in register $t0 left one bit
+[00000030] 1500FFFB 	bne	$t0, $zero, loop  # Loop back if the mask in $t0 still has a bit
+[00000034] 03E00008 ret:	jr	$ra		# return to caller with count in $v0
+                         
+           ???????? 	.end	main
+                         
+                         
+Code size: 00000038 (56) bytes.
+Entry point: 00000004
+Error count: 0
+Symbol Table: 6 entries defined.
+test1 = 00000000 (0), type=03 (Label)
+main = 00000004 (4), type=03 (Label)
+countbits = 00000018 (24), type=03 (Label)
+loop = 00000020 (32), type=03 (Label)
+notset = 0000002C (44), type=03 (Label)
+ret = 00000034 (52), type=03 (Label)
