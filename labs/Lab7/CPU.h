@@ -46,10 +46,11 @@ typedef struct{
 
 typedef struct{
    //Instruction dInstr;
-   char type;
+   //char type;
    bool active;
    bool blocked;
    bool is_WB;
+   char[8] functStr;
    unsigned writeBackReg;
    unsigned writeBackValue;
    unsigned memoryAddress;
@@ -57,14 +58,16 @@ typedef struct{
 
 typedef struct{
    //Instruction dInstr;
-   char type;
+   //char type;
    bool active;
    bool blocked; 
-   
+   char[8] functStr;  
    unsigned writeBackReg;
    unsigned writeBackValue;
    unsigned memoryAddress;
 } MEM_WB_basket;
+
+
 
 
 #endif
