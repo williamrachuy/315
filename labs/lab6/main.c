@@ -301,7 +301,7 @@ int main (const int argc, const char **argv) {
                printf("\nEnd of Program. Reverting...\n");
                resetStats();
                resetRegisters();
-               resetPC();        
+               resetPC();
             }
          }
          else {
