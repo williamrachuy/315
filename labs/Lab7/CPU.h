@@ -16,7 +16,6 @@ typedef struct{
    unsigned rs, rt;
    unsigned imm;
    unsigned signExImmed;
-   unsigned effAddress;
    
 } Ivalues;
 
@@ -46,23 +45,25 @@ typedef struct{
 } ID_IE_basket;
 
 typedef struct{
-   Instruction dInstr;
+   //Instruction dInstr;
    char type;
    bool active;
-   bool blocked;   
-   Rvalues rData;
-   Ivalues iData;
-   Jvalues jData;
+   bool blocked;
+   bool is_WB;
+   unsigned writeBackReg;
+   unsigned writeBackValue;
+   unsigned memoryAddress;
 } IE_MEM_basket;
 
 typedef struct{
-   Instruction dInstr;
+   //Instruction dInstr;
    char type;
    bool active;
    bool blocked; 
-   Rvalues rData;
-   Ivalues iData;
-   Jvalues jData;   
+   
+   unsigned writeBackReg;
+   unsigned writeBackValue;
+   unsigned memoryAddress;
 } MEM_WB_basket;
 
 

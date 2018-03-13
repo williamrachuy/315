@@ -69,14 +69,7 @@ void id(){
 
 
 void ItypeExecute(){
-   
-   /*unsigned rs = iStruct.rs,
-            rt = iStruct.rt,
-            imm = iStruct.imm,
-            eff = reg[iStruct.rs] + signExtendHalfWord(iStruct.imm),
-            memShiftAmt;*/
-            
-   // I type will store any operations in rt, if the operation calls for it
+
    E_M.writeBackReg = D_E.iData.rtAddr;   
    
    
@@ -146,7 +139,9 @@ void ItypeExecute(){
    }
    else if (strcmp(functStr, "lui")    == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = FALSE;                    // Need a mem state      
+      E_M.active = FALSE;                    // Need a mem state   
+
+      E_M.writeBackValue = (imm << 16) & 0xFFFF0000;  
    }
    else if (strcmp(functStr, "lb")     == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
@@ -179,53 +174,69 @@ void ItypeExecute(){
       E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
    }
    else if (strcmp(functStr, "sb")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // Dont Need a mem state  
+      
       E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
-      writeBackValue = reg[D_E.iData.rt] & 0x000000FF + signExtendHalfWord(imm); stats.memRefs++;
+      writeBackValue = reg[D_E.iData.rt] & 0x000000FF;
    }
    else if (strcmp(functStr, "sh")     == SAME){
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // Dont Need a mem state  
+      
       E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
-      writeBackValue = reg[D_E.iData.rt] & 0x0000FFFF + signExtendHalfWord(imm); stats.memRefs++;
+      writeBackValue = reg[D_E.iData.rt] & 0x0000FFFF;
    }
    else if (strcmp(functStr, "sw")     == SAME){
-      E_M.memoryAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
-      writeBackValue = reg[D_E.iData.rt]; stats.memRefs++;
+      E_M.is_WB = TRUE;                      // Need a writeback state
+      E_M.active = FALSE;                    // Dont Need a mem state  
+      
+      E_M.memoryAddress = reg[D_E.iData.rs];
+      writeBackValue = reg[D_E.iData.rt];
    }
    
 }
 
-void ItypeMem(){
+void MemCylce(){
 
    stats.memRefs++;
 
-   if (strcmp(functStr, "lb")     == SAME){
-      E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = TRUE;                    // Need a mem state  
-      
+   if (strcmp(functStr, "lb")     == SAME){     
       M_W.writeBackValue = signExtendByte(getMemoryValue(E_M.memoryAddress) & 0x000000FF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lh")     == SAME){
-      E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = TRUE;                    // Need a mem state  
-      
+   else if (strcmp(functStr, "lh")     == SAME){      
       M_W.writeBackValue = signExtendHalfWord(getMemoryValue(E_M.memoryAddress) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lw")     == SAME){
-      E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = TRUE;                    // Need a mem state  
-      
+   else if (strcmp(functStr, "lw")     == SAME){     
       M_W.writeBackValue = getMemoryValue(E_M.memoryAddress); stats.memRefs++; stats.clocks++;
    }
    else if (strcmp(functStr, "lbu")    == SAME){
-      E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = TRUE;                    // Need a mem state  
-      
       M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (4 *  (E_M.memoryAddress % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lhu")    == SAME){
-      E_M.is_WB = TRUE;                      // Need a writeback state
-      E_M.active = TRUE;                    // Need a mem state  
-      
+   else if (strcmp(functStr, "lhu")    == SAME){ 
       M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (16 * (E_M.memoryAddress % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
+   }
+}
+
+void writeBack(){
+   
+   if (strcmp(functStr, "sb")     == SAME){
+      stats.memRefs++;
+          
+      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 1);
+   }
+   else if (strcmp(functStr, "sh")     == SAME){
+      stats.memRefs++;
+      
+      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 2);
+   }
+   else if (strcmp(functStr, "sw")     == SAME){
+      stats.memRefs++;
+      
+      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 4);
+   }
+   else {
+      reg[M_W.writeBackReg] = M_W.writeBackValue;
    }
 }
 
@@ -233,6 +244,7 @@ void ItypeMem(){
 void ex(){
    
    InstructionCopy(D_E.dInstr, *(E_M.dInstr));        // Copy the decoded instruction to Exec->Mem basket
+   memcpy(D_E.functStr, M_E.functStr, 8);             // Copy the function string to Exec->Mem basket
    
    if(D_E.active){
       E_M.active = true;
@@ -258,36 +270,29 @@ void ex(){
 
 void mem(){
    
-         if(type == 'I'){
-         
-      }
-      else if(type == 'J'){
-         
-      }
-      else if(type == 'R'){
-         
-      }
-      else if(type == 'F'){
-         
-      }
+   memcpy(E_M.functStr, M_W.functStr, 8);             // Copy the function string to Mem->WB basket
+   
+   if(E_M.active){
+      MemCylce();
+   }
+   
+   if(E_M.is_WB){
+      M_W.active = TRUE;
+      M_W.writeBackReg = E_M.writeBackReg;
+      M_W.writeBackValue = E_M.writeBackValue;
+      M_W.memoryAddress = E_M.memoryAddress;
+   }
+   else{
+      M_W.active = FALSE;
+   }
    
 }
 
 void wb(){
-   
-         if(type == 'I'){
-         
-      }
-      else if(type == 'J'){
-         
-      }
-      else if(type == 'R'){
-         
-      }
-      else if(type == 'F'){
-         
-      }
-   
+ 
+if(M_W.active){ 
+      writeBack();
+   }  
 }
 
 
