@@ -3,11 +3,20 @@
 #include <string.h>
 #include "CPU.h"
 #include "ProgramMem.h"
+#include "decoder.h"
 
-ID_IEIF_ID_basket F_D;
+#define ZERO 0
+#define SAME 0
+#define TRUE 1
+#define FALSE 0
+
+IF_ID_basket F_D;
 ID_IE_basket D_E;
 IE_MEM_basket E_M;
 MEM_WB_basket M_W;
+
+int endProgram = 0;
+int haltProgram = 0;
 
 void ItypeExecute();
 void RtypeExecute();
@@ -15,23 +24,34 @@ void JtypeExecute();
 void MemCylce();
 void writeBack();
 void ex();
-void mem();
+void memory();
 void wb();
+unsigned signExtendHalfWord(unsigned orig);
+unsigned signExtendByte(unsigned orig);
+unsigned memAddrAdjust(unsigned memAddress);
+signed getMemoryValue(unsigned memAddress);
+void setMemoryValue(unsigned memAddress, signed value, unsigned size);
+Instruction makeInstruction(unsigned instr);
 
-void if(){
+
+void ift(){
    
-   if(pc < mem_ptr){
+   if(pc < mem_ptr && !endProgram){
       F_D.dInstr = makeInstruction(mem[pc]);
    
       F_D.PC_curr = pc;
       
       pc += 4;
       
-      F_D.active = true;
+      F_D.active = TRUE;
       
    }
    else {
-      F_D.active = false;
+      F_D.active = FALSE;
+      
+      if(endProgram && D_E.active == FALSE && E_M.active == FALSE && M_W.active == FALSE){
+         haltProgram = 1;
+      }
       
    }
 }
@@ -40,40 +60,102 @@ void id(){
    
    if(F_D.active){
       //InstructionCopy(F_D.dInstr, *(D_E.dInstr));
-      getType(D_E.dInstr.op, D_E.dInstr.funct, *(F_D.dInstr.type), *(D_E.functStr));
+      getType(F_D.dInstr.op, F_D.dInstr.funct, &(D_E.type), &(D_E.functStr));
       
-      // Indicate that next clock will have an execute operation
-      D_E.active = true;      
+      D_E.PC_curr = F_D.PC_curr;
       
-      // Depending on the instruction type, we will fill a different struct for the instruction decoding
-      if(F_D.type == 'I'){
-         D_E.iData.rtAddr = F_D.dInstr.rt;
-         D_E.iData.rs = reg[F_D.dInstr.rs];
-         D_E.iData.rt = reg[F_D.dInstr.rt];
-         D_E.iData.imm = F_D.dInstr.imm;
-         D_E.iData.signExImmed = signExtendHalfWord(F_D.dInstr.imm);
+      if(strcmp(D_E.functStr, "syscall") == SAME){
+         endProgram = 1;
       }
-      else if(F_D.type == 'J'){
-         D_E.jData.address = F_D.dInstr.addr; 
+      else if(F_D.dInstr.op == 0 && F_D.dInstr.addr == 0){
+         D_E.active = FALSE;           // For nop
       }
-      else if(F_D.type == 'R'){
-         D_E.rData.rdAddr = F_D.dInstr.rd;
-         D_E.rData.rs = reg[F_D.dInstr.rs];
-         D_E.rData.rt = reg[F_D.dInstr.rt];
-         D_E.rData.rd = reg[F_D.dInstr.rd];
-         D_E.rData.shamt = F_D.dInstr.shamt;
+      else{
+         // Indicate that next clock will have an execute operation
+         D_E.active = TRUE;      
+         
+         // Depending on the instruction type, we will fill a different struct for the instruction decoding
+         if(D_E.type == 'I'){
+            D_E.iData.rtAddr = F_D.dInstr.rt;
+            D_E.iData.rs = reg[F_D.dInstr.rs];
+            D_E.iData.rt = reg[F_D.dInstr.rt];
+            D_E.iData.imm = F_D.dInstr.imm;
+            D_E.iData.signExImmed = signExtendHalfWord(F_D.dInstr.imm);
+         }
+         else if(D_E.type == 'J'){
+            D_E.jData.address = F_D.dInstr.addr; 
+         }
+         else if(D_E.type == 'R'){
+            D_E.rData.rdAddr = F_D.dInstr.rd;
+            D_E.rData.rs = reg[F_D.dInstr.rs];
+            D_E.rData.rt = reg[F_D.dInstr.rt];
+            D_E.rData.rd = reg[F_D.dInstr.rd];
+            D_E.rData.shamt = F_D.dInstr.shamt;
+         }
+         else {
+            D_E.active = FALSE;
+         }
       }
-      else {
-         D_E.active = false;
-      }
-      
-
    }
    else{
-      D_E.active = false;
+      D_E.active = FALSE;
    }
    
    
+}
+
+void ex(){
+   
+   //InstructionCopy(D_E.dInstr, *(E_M.dInstr));        // Copy the decoded instruction to Exec->Mem basket
+   memcpy(D_E.functStr, E_M.functStr, 8);             // Copy the function string to Exec->Mem basket
+   
+   if(D_E.active){
+      E_M.active = TRUE;
+      
+      if(D_E.type == 'I'){
+         ItypeExecute();
+      }
+      else if(D_E.type == 'J'){
+         JtypeExecute();
+      }
+      else if(D_E.type == 'R'){
+         RtypeExecute();
+      }
+      else if(D_E.type == 'F'){
+         printf("   Invalid instruction at 0x%08X\n", pc);         
+      }
+   }
+   else{
+      E_M.active = FALSE;
+   }
+   
+}
+
+void memory(){
+   
+   memcpy(E_M.functStr, M_W.functStr, 8);             // Copy the function string to Mem->WB basket
+   
+   if(E_M.active){
+      MemCylce();
+   }
+   
+   if(E_M.is_WB){
+      M_W.active = TRUE;
+      M_W.writeBackReg = E_M.writeBackReg;
+      M_W.writeBackValue = E_M.writeBackValue;
+      M_W.memoryAddress = E_M.memoryAddress;
+   }
+   else{
+      M_W.active = FALSE;
+   }
+   
+}
+
+void wb(){
+ 
+if(M_W.active){ 
+      writeBack();
+   }  
 }
 
 
@@ -83,18 +165,18 @@ void ItypeExecute(){
    
    
    if (strcmp(D_E.functStr, "beq") == SAME){
-      if(reg[rs] == reg[rt]){ 
-         pc =  PC_curr + (short int)(imm << 2);
-         F_D.active = false;                    // Flush the pipe
-         D_E.active = false;                    // Flush the pipe
+      if(reg[D_E.iData.rs] == reg[D_E.iData.rt]){ 
+         pc =  D_E.PC_curr + (short int)(D_E.iData.imm << 2) + WORD_SIZE;
+         F_D.active = FALSE;                    // Flush the pipe
+         D_E.active = FALSE;                    // Flush the pipe
       }    
 
-      E_M.active = false;                       // Branch has no mem cycle
-      E_M.is_WB = false;
+      E_M.active = FALSE;                       // Branch has no mem cycle
+      E_M.is_WB = FALSE;
    }
    else if (strcmp(D_E.functStr, "bne") == SAME){
-      if (reg[rs] != reg[rt]){
-         pc = PC_curr + (short int)(imm << 2);
+      if (reg[D_E.iData.rs] != reg[D_E.iData.rt]){
+         pc = D_E.PC_curr + (short int)(imm << 2) + WORD_SIZE;
          
          F_D.active = FALSE;                    // Flush the pipe
          D_E.active = FALSE;                    // Flush the pipe
@@ -187,21 +269,21 @@ void ItypeExecute(){
       E_M.active = FALSE;                    // Dont Need a mem state  
       
       E_M.memoryAddress = D_E.iData.rs + D_E.iData.signExImmed;
-      writeBackValue = D_E.iData.rt & 0x000000FF;
+      E_M.writeBackValue = D_E.iData.rt & 0x000000FF;
    }
    else if (strcmp(D_E.functStr, "sh")     == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // Dont Need a mem state  
       
       E_M.memoryAddress = D_E.iData.rs + D_E.iData.signExImmed;
-      writeBackValue = D_E.iData.rt & 0x0000FFFF;
+      E_M.writeBackValue = D_E.iData.rt & 0x0000FFFF;
    }
    else if (strcmp(D_E.functStr, "sw")     == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // Dont Need a mem state  
       
       E_M.memoryAddress = D_E.iData.rs;
-      writeBackValue = D_E.iData.rt;
+      E_M.writeBackValue = D_E.iData.rt;
    }
    
 }
@@ -219,49 +301,49 @@ void RtypeExecute() {
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
       
-      writeBackValue =  (unsigned)D_E.rData.rt << shamt;
+      E_M.writeBackValue =  (unsigned)D_E.rData.rt << D_E.rData.shamt;
    }
    else if (strcmp(D_E.functStr, "srl") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
       
-      writeBackValue =  (unsigned)D_E.rData.rt >> shamt;
+      E_M.writeBackValue =  (unsigned)D_E.rData.rt >> D_E.rData.shamt;
    }   
    
    else if (strcmp(D_E.functStr, "sra") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (signed)D_E.rData.rt >> shamt;
+      E_M.writeBackValue = (signed)D_E.rData.rt >> D_E.rData.shamt;
    }   
    
    else if (strcmp(D_E.functStr, "sllv") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (unsigned)D_E.rData.rt << reg[rs];
+      E_M.writeBackValue = (unsigned)D_E.rData.rt << reg[D_E.rData.rs];
    }   
    
    else if (strcmp(D_E.functStr, "srlv") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (unsigned)D_E.rData.rt >> reg[rs];
+      E_M.writeBackValue = (unsigned)D_E.rData.rt >> reg[D_E.rData.rs];
    }   
    
    else if (strcmp(D_E.functStr, "srav") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (signed)D_E.rData.rt >> reg[rs];
+      E_M.writeBackValue = (signed)D_E.rData.rt >> reg[D_E.rData.rs];
    }   
    
    else if (strcmp(D_E.functStr, "jr") == SAME){
       E_M.is_WB = FALSE;                      // Dont need a writeback state
       E_M.active = FALSE;                    // No mem state
       
-      F_D.active = false;                    // Flush the pipe
-      D_E.active = false;                    // Flush the pipe
+      F_D.active = FALSE;                    // Flush the pipe
+      D_E.active = FALSE;                    // Flush the pipe
 
       pc =  D_E.rData.rs - WORD_SIZE;
    }      
@@ -270,95 +352,95 @@ void RtypeExecute() {
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (signed)D_E.rData.rt + (signed)D_E.rData.rs;
+      E_M.writeBackValue = (signed)D_E.rData.rt + (signed)D_E.rData.rs;
    }   
    
    else if (strcmp(D_E.functStr, "addu") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue =  (unsigned)D_E.rData.rt + (unsigned)D_E.rData.rs;
+      E_M.writeBackValue =  (unsigned)D_E.rData.rt + (unsigned)D_E.rData.rs;
    }   
    
    else if (strcmp(D_E.functStr, "sub") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = (signed)D_E.rData.rs - (signed)D_E.rData.rt;
+      E_M.writeBackValue = (signed)D_E.rData.rs - (signed)D_E.rData.rt;
    }   
    
    else if (strcmp(D_E.functStr, "subu") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue =  (unsigned)D_E.rData.rs - (unsigned)D_E.rData.rt;
+      E_M.writeBackValue =  (unsigned)D_E.rData.rs - (unsigned)D_E.rData.rt;
    }   
    
    else if (strcmp(D_E.functStr, "and") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = D_E.rData.rt & D_E.rData.rs;
+      E_M.writeBackValue = D_E.rData.rt & D_E.rData.rs;
    
    }
    else if (strcmp(D_E.functStr, "or") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = D_E.rData.rt | D_E.rData.rs;
+      E_M.writeBackValue = D_E.rData.rt | D_E.rData.rs;
    }   
    
    else if (strcmp(D_E.functStr, "xor") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = D_E.rData.rt ^ D_E.rData.rs;
+      E_M.writeBackValue = D_E.rData.rt ^ D_E.rData.rs;
    }   
    
    else if (strcmp(D_E.functStr, "nor") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = ~(D_E.rData.rt | D_E.rData.rs);
+      E_M.writeBackValue = ~(D_E.rData.rt | D_E.rData.rs);
    }   
    
    else if (strcmp(D_E.functStr, "slt") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue =   ((signed)D_E.rData.rs <   (signed)D_E.rData.rt) ? 1 : 0;
+      E_M.writeBackValue =   ((signed)D_E.rData.rs <   (signed)D_E.rData.rt) ? 1 : 0;
    }   
    
    else if (strcmp(D_E.functStr, "sltu") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
 
-      writeBackValue = ((unsigned)D_E.rData.rs < (unsigned)D_E.rData.rt) ? 1 : 0;
+      E_M.writeBackValue = ((unsigned)D_E.rData.rs < (unsigned)D_E.rData.rt) ? 1 : 0;
    }
+   
+   
 }
 
 void JtypeExecute(){
-   
-
-   else if (strcmp(D_E.functStr, "j") == SAME){
+   if (strcmp(D_E.functStr, "j") == SAME){
       E_M.is_WB = FALSE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
       
-      F_D.active = false;                    // Flush the pipe
-      D_E.active = false;                    // Flush the pipe
+      F_D.active = FALSE;                    // Flush the pipe
+      D_E.active = FALSE;                    // Flush the pipe
       
-      pc = ((pc & 0xE0000000) | (D_E.jData.address << 2)) - WORD_SIZE;
+      pc = ((D_E.PC_curr & 0xE0000000) | (D_E.jData.address << 2));
    }
    else if (strcmp(D_E.functStr, "jalr") == SAME){
       E_M.is_WB = TRUE;                      // Need a writeback state
       E_M.active = FALSE;                    // No mem state
       
-      F_D.active = false;                    // Flush the pipe
-      D_E.active = false;                    // Flush the pipe
+      F_D.active = FALSE;                    // Flush the pipe
+      D_E.active = FALSE;                    // Flush the pipe
 
       E_M.writeBackReg = ra;                 // Need to update ra using enumerated type
-      E_M.writeBackValue = pc + WORD_SIZE; 
-      pc = ((pc & 0xE0000000) | (D_E.jData.address << 2)) - WORD_SIZE;
+      E_M.writeBackValue = D_E.PC_curr + WORD_SIZE; 
+      pc = ((D_E.PC_curr & 0xE0000000) | (D_E.jData.address << 2)) - WORD_SIZE;
    }
 }
 
@@ -366,98 +448,43 @@ void MemCylce(){
 
    stats.memRefs++;
 
-   if (strcmp(functStr, "lb") == SAME){     
+   if (strcmp(E_M.functStr, "lb") == SAME){     
       M_W.writeBackValue = signExtendByte(getMemoryValue(E_M.memoryAddress) & 0x000000FF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lh") == SAME){      
+   else if (strcmp(E_M.functStr, "lh") == SAME){      
       M_W.writeBackValue = signExtendHalfWord(getMemoryValue(E_M.memoryAddress) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lw") == SAME){     
+   else if (strcmp(E_M.functStr, "lw") == SAME){     
       M_W.writeBackValue = getMemoryValue(E_M.memoryAddress); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lbu") == SAME){
+   else if (strcmp(E_M.functStr, "lbu") == SAME){
       M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (4 *  (E_M.memoryAddress % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;
    }
-   else if (strcmp(functStr, "lhu") == SAME){ 
+   else if (strcmp(E_M.functStr, "lhu") == SAME){ 
       M_W.writeBackValue = (unsigned)((getMemoryValue(E_M.memoryAddress) >> (16 * (E_M.memoryAddress % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
    }
 }
 
 void writeBack(){
    
-   if (strcmp(functStr, "sb") == SAME){
+   if (strcmp(M_W.functStr, "sb") == SAME){
       stats.memRefs++;
           
-      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 1);
+      setMemoryValue(M_W.memoryAddress, M_W.writeBackValue, 1);
    }
-   else if (strcmp(functStr, "sh") == SAME){
+   else if (strcmp(M_W.functStr, "sh") == SAME){
       stats.memRefs++;
       
-      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 2);
+      setMemoryValue(M_W.memoryAddress, M_W.writeBackValue, 2);
    }
-   else if (strcmp(functStr, "sw") == SAME){
+   else if (strcmp(M_W.functStr, "sw") == SAME){
       stats.memRefs++;
       
-      setMemoryValue(E_M.memoryAddress, E_M.writeBackValue, 4);
+      setMemoryValue(M_W.memoryAddress, M_W.writeBackValue, 4);
    }
    else {
       reg[M_W.writeBackReg] = M_W.writeBackValue;
    }
-}
-
-
-void ex(){
-   
-   InstructionCopy(D_E.dInstr, *(E_M.dInstr));        // Copy the decoded instruction to Exec->Mem basket
-   memcpy(D_E.functStr, M_E.functStr, 8);             // Copy the function string to Exec->Mem basket
-   
-   if(D_E.active){
-      E_M.active = true;
-      
-      if(D_E.type == 'I'){
-         ItypeExecute();
-      }
-      else if(D_E.type == 'J'){
-         
-      }
-      else if(D_E.type == 'R'){
-         
-      }
-      else if(D_E.type == 'F'){
-         
-      }
-   }
-   else{
-      E_M.active = false;
-   }
-   
-}
-
-void mem(){
-   
-   memcpy(E_M.functStr, M_W.functStr, 8);             // Copy the function string to Mem->WB basket
-   
-   if(E_M.active){
-      MemCylce();
-   }
-   
-   if(E_M.is_WB){
-      M_W.active = TRUE;
-      M_W.writeBackReg = E_M.writeBackReg;
-      M_W.writeBackValue = E_M.writeBackValue;
-      M_W.memoryAddress = E_M.memoryAddress;
-   }
-   else{
-      M_W.active = FALSE;
-   }
-   
-}
-
-void wb(){
- 
-if(M_W.active){ 
-      writeBack();
-   }  
 }
 
 
@@ -551,89 +578,4 @@ void setMemoryValue(unsigned memAddress, signed value, unsigned size){
       mem[memAddress - memShiftAmt] = (mem[memAddress - memShiftAmt] & (0xFFFFFFFF << (memShiftAmt * 8)) | (value << (memShiftAmt * 8)));
       mem[memAddress + memShiftAmt] = (mem[memAddress + memShiftAmt] & (0xFFFFFFFF >> ((4-memShiftAmt) * 8)) | (value >> ((4-memShiftAmt) * 8)));
    }      
-}
-
-// Executes I type instructions. Each instruction decoded should be self explanatory
-void execTypeI(Instruction iStruct, char *functStr) {
-   unsigned rs = iStruct.rs,
-            rt = iStruct.rt,
-            imm = iStruct.imm,
-            eff = reg[iStruct.rs] + signExtendHalfWord(iStruct.imm),
-            memShiftAmt;
-
-   if      (strcmp(functStr, "beq")    == SAME)     {pc =  (reg[rs] == reg[rt]) ? (pc + (short int)(imm << 2)) : pc; stats.clocks--;}
-   else if (strcmp(functStr, "bne")    == SAME)     {pc =  (reg[rs] != reg[rt]) ? (pc + (short int)(imm << 2)) : pc; stats.clocks--;}
-   else if (strcmp(functStr, "addi")   == SAME) reg[rt] =    (signed)reg[rs] +   signExtendHalfWord(imm);
-   else if (strcmp(functStr, "addiu")  == SAME) reg[rt] =  (unsigned)reg[rs] + (unsigned)imm;
-   else if (strcmp(functStr, "slti")   == SAME) reg[rt] =   ((signed)reg[rs] <   signExtendHalfWord(imm)) ? TRUE : FALSE;
-   else if (strcmp(functStr, "slti")   == SAME) reg[rt] = ((unsigned)reg[rs] < (unsigned)imm) ? TRUE : FALSE;
-   else if (strcmp(functStr, "andi")   == SAME) reg[rt] =    (signed)reg[rs] &   imm;
-   else if (strcmp(functStr, "ori")    == SAME) reg[rt] =    (signed)reg[rs] |   imm;
-   else if (strcmp(functStr, "xori")   == SAME) reg[rt] =    (signed)reg[rs] ^   imm;
-   else if (strcmp(functStr, "lui")    == SAME){reg[rt] = (imm << 16) & 0xFFFF0000; stats.clocks++;}
-   else if (strcmp(functStr, "lb")     == SAME){reg[rt] = signExtendByte(getMemoryValue(eff) & 0x000000FF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lh")     == SAME){reg[rt] = signExtendHalfWord(getMemoryValue(eff) & 0x0000FFFF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lw")     == SAME){reg[rt] = getMemoryValue(eff); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lbu")    == SAME){reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC] >> (4 *  (eff % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "lhu")    == SAME){reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC + imm] >> (16 * (eff % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;}
-   else if (strcmp(functStr, "sb")     == SAME){mem[eff] = reg[rt] & 0x000000FF + signExtendHalfWord(imm); stats.memRefs++;}
-   else if (strcmp(functStr, "sh")     == SAME){mem[eff] = reg[rt] & 0x0000FFFF + signExtendHalfWord(imm); stats.memRefs++;}
-   else if (strcmp(functStr, "sw")     == SAME){mem[eff] = reg[rt]; stats.memRefs++;}
-}
-
-// Executes J type instructions. Each instruction decoded should be self explanatory
-void execTypeJ(Instruction iStruct, char *functStr) {
-   unsigned addr = iStruct.addr;  
-   
-   if (strcmp(functStr, "jal")    == SAME){reg[ra] = pc + WORD_SIZE; pc = ((pc & 0xE0000000) | (addr << 2)) - WORD_SIZE;}
-   else if (strcmp(functStr, "j")      == SAME)       pc = ((pc & 0xE0000000) | (addr << 2)) - WORD_SIZE;
-          
-}
-
-// Checks for the type of instruction and calls the appropriate instruction type execution function
-void execInstruction(unsigned instr) {
-   char type, functStr[8];
-   Instruction iStruct = makeInstruction(instr);
-
-   // Get the type of the instruction first
-   getType(iStruct.op, iStruct.funct, &type, functStr);
-   
-   if(instr == 0x00000000){
-      // Check for nop
-      stats.execs += 1;
-      stats.clocks += 3;
-   }
-   else if(instr == 0x0000000C){
-      // syscall. Assumes HALT, other syscalls to be implemented in future. If PC = mem_ptr, the PC is at end of execution
-      if(reg[v0] == 0x000A) pc = mem_ptr;                                   
-   }
-   else if (type == 'F') {
-      // Indicates an invalid instruction has been reached, however continues with program execution
-      printf("   Invalid instruction at 0x%08X\n", pc);
-   }
-   else if (type == 'R') {
-      // Executes R type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
-      stats.execs += 1;
-      stats.clocks += 4;
-      execTypeR(iStruct, functStr);
-   }
-   else if (type == 'I') {
-      // Executes I type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
-      stats.execs += 1;
-      stats.clocks += 4;
-      execTypeI(iStruct, functStr);
-   }
-   else if (type == 'J') {
-      // Executes J type instructions. Assumes 4 clock cycles, but adjusts per instruction as needed
-      stats.execs += 1;
-      stats.clocks += 3;
-      execTypeJ(iStruct, functStr);
-   }
-   else {
-      // Default, shouldn't be reached
-      printf("   Invalid instruction at 0x%08X\n", pc);
-   }
-   
-   // Always increment PC. Any instruction that assumes an add of +4 (like branches) doesn't do so, as it is done here
-   pc += WORD_SIZE;
 }

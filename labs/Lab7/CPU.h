@@ -5,6 +5,11 @@
 
 #define WORD_SIZE 4
 
+// Struct for instruction code
+typedef struct {
+   unsigned op, rs, rt, rd, shamt, funct, imm, addr;
+} Instruction;
+
 typedef struct{
    unsigned rdAddr;
    unsigned rs, rt, rd;
@@ -28,7 +33,7 @@ typedef struct{
 typedef struct{
    unsigned PC_curr;
    Instruction dInstr;
-   bool active;
+   int active;
    
 } IF_ID_basket;
 
@@ -36,9 +41,9 @@ typedef struct{
 typedef struct{
    unsigned PC_curr;
    Instruction dInstr;
-   char[8] functStr;
+   char functStr[8];
    char type;
-   bool active;
+   int active;
    Rvalues rData;
    Ivalues iData;
    Jvalues jData;
@@ -47,10 +52,10 @@ typedef struct{
 typedef struct{
    //Instruction dInstr;
    //char type;
-   bool active;
-   bool blocked;
-   bool is_WB;
-   char[8] functStr;
+   int active;
+   int blocked;
+   int is_WB;
+   char functStr[8];
    unsigned writeBackReg;
    unsigned writeBackValue;
    unsigned memoryAddress;
@@ -59,15 +64,20 @@ typedef struct{
 typedef struct{
    //Instruction dInstr;
    //char type;
-   bool active;
-   bool blocked; 
-   char[8] functStr;  
+   int active;
+   int blocked; 
+   char functStr[8];  
    unsigned writeBackReg;
    unsigned writeBackValue;
    unsigned memoryAddress;
 } MEM_WB_basket;
 
+void ift();
+void id();
+void ex();
+void memory();
+void wb();
 
-
+extern int haltProgram;
 
 #endif
