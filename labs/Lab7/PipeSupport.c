@@ -16,6 +16,19 @@ unsigned breakpoint;
 unsigned reg[REG_SIZE];
 
 
+void InstructionCopy(Instruction source, Instruction * dest){
+   dest->op = source.op;
+   dest->rs = source.rs;
+   dest->rt = source.rt;
+   dest->rd = source.rd;
+   dest->shamt = source.shamt;
+   dest->funct = source.funct;
+   dest->imm = source.imm;
+   dest->addr = source.addr;
+   
+}
+
+
 // Prints an explanation of the program commands
 void printHelp(void) {
    printf("[ load | file <filename> | run | step | decode | reset | help | quit | brkpt <PC address for breakpoint> ]\n");

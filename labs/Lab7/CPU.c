@@ -4,7 +4,7 @@
 #include "CPU.h"
 #include "ProgramMem.h"
 
-IF_ID_basket F_D;
+ID_IEIF_ID_basket F_D;
 ID_IE_basket D_E;
 IE_MEM_basket E_M;
 MEM_WB_basket M_W;
@@ -18,32 +18,191 @@ void if(){
       
       pc += 4;
       
+      F_D.active = true;
+      
+   }
+   else {
+      F_D.active = false;
+      
    }
 }
 
 void id(){
    
    if(F_D.active){
-      getType(unsigned op, unsigned funct, char *type, char *functStr)
+      InstructionCopy(F_D.dInstr, *(D_E.dInstr));
+      getType(ID_IE.dInstr.op, ID_IE.dInstr.funct, *(F_D.dInstr.type), *(ID_IE.functStr));
+      
+      if(type == 'I'){
+         D_E.iData.rtAddr = F_D.dInstr.rt;
+         D_E.iData.rs = reg[F_D.dInstr.rs];
+         D_E.iData.rt = reg[F_D.dInstr.rt];
+         D_E.iData.imm = F_D.dInstr.imm;
+         D_E.iData.signExImmed = signExtendHalfWord(F_D.dInstr.imm);
+         effAddress = reg[D_E.iData.rs] + D_E.iData.signExImmed;
+      }
+      else if(type == 'J'){
+         D_E.jData.address = F_D.dInstr.addr; 
+      }
+      else if(type == 'R'){
+         D_E.rData.rdAddr = F_D.dInstr.rd;
+         D_E.rData.rs = reg[F_D.dInstr.rs];
+         D_E.rData.rt = reg[F_D.dInstr.rt];
+         D_E.rData.rd = reg[F_D.dInstr.rd];
+         D_E.rData.shamt = F_D.dInstr.shamt;
+      }
+      else {
+         D_E.active = false;
+      }
+      
+
+   }
+   else{
+      D_E.active = false;
    }
    
    
 }
 
 
+void ItypeExecute(){
+   
+   /*unsigned rs = iStruct.rs,
+            rt = iStruct.rt,
+            imm = iStruct.imm,
+            eff = reg[iStruct.rs] + signExtendHalfWord(iStruct.imm),
+            memShiftAmt;*/
+   E_M.
+            
+            
+   
+   if (strcmp(functStr, "beq") == SAME){
+      if(reg[rs] == reg[rt]){ 
+         pc =  pc + (short int)(imm << 2);
+         F_D.active = false;                    // Flush the pipe
+         D_E.active = false;                    // Flush the pipe
+      }    
+
+      E_M.active = false;                       // Branch has no mem cycle
+   }
+   else if (strcmp(functStr, "bne") == SAME){
+      if (reg[rs] != reg[rt]){
+         pc = (pc + (short int)(imm << 2));
+         
+         F_D.active = false;                    // Flush the pipe
+         D_E.active = false;                    // Flush the pipe
+      }
+      
+
+
+      E_M.active = false;                    // Branch has no mem cycle
+   }
+   else if (strcmp(functStr, "addi")   == SAME){
+      reg[rt] =    (signed)reg[rs] +   signExtendHalfWord(imm);
+   }
+   else if (strcmp(functStr, "addiu")  == SAME){
+      reg[rt] =  (unsigned)reg[rs] + (unsigned)imm;
+   }
+   else if (strcmp(functStr, "slti")   == SAME){
+      reg[rt] =   ((signed)reg[rs] <   signExtendHalfWord(imm)) ? TRUE : FALSE;
+   }
+   else if (strcmp(functStr, "slti")   == SAME){
+      reg[rt] = ((unsigned)reg[rs] < (unsigned)imm) ? TRUE : FALSE;
+   }
+   else if (strcmp(functStr, "andi")   == SAME){
+      reg[rt] =    (signed)reg[rs] &   imm;
+   }
+   else if (strcmp(functStr, "ori")    == SAME){
+      reg[rt] =    (signed)reg[rs] |   imm;
+   }
+   else if (strcmp(functStr, "xori")   == SAME){
+      reg[rt] =    (signed)reg[rs] ^   imm;
+   }
+   else if (strcmp(functStr, "lui")    == SAME){
+      reg[rt] = (imm << 16) & 0xFFFF0000; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lb")     == SAME){
+      reg[rt] = signExtendByte(getMemoryValue(eff) & 0x000000FF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lh")     == SAME){
+      reg[rt] = signExtendHalfWord(getMemoryValue(eff) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lw")     == SAME){
+      reg[rt] = getMemoryValue(eff); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lbu")    == SAME){
+      reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC] >> (4 *  (eff % 4))) & 0x000000FF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "lhu")    == SAME){
+      reg[rt] = (unsigned)((mem[eff & 0xFFFFFFFC + imm] >> (16 * (eff % 2))) & 0x0000FFFF); stats.memRefs++; stats.clocks++;
+   }
+   else if (strcmp(functStr, "sb")     == SAME){
+      mem[eff] = reg[rt] & 0x000000FF + signExtendHalfWord(imm); stats.memRefs++;
+   }
+   else if (strcmp(functStr, "sh")     == SAME){
+      mem[eff] = reg[rt] & 0x0000FFFF + signExtendHalfWord(imm); stats.memRefs++;
+   }
+   else if (strcmp(functStr, "sw")     == SAME){
+      mem[eff] = reg[rt]; stats.memRefs++;
+   }
+   
+}
+
+void ItypeMemory(){
+   
+}
+
+
 void ex(){
    
+   InstructionCopy(D_E.dInstr, *(E_M.dInstr));        // Copy in the decoded instruction
+   
+      if(D_E.type == 'I'){
+         ItypeExecute();
+      }
+      else if(D_E.type == 'J'){
+         
+      }
+      else if(D_E.type == 'R'){
+         
+      }
+      else if(D_E.type == 'F'){
+         
+      }
    
 }
 
 void mem(){
    
+         if(type == 'I'){
+         
+      }
+      else if(type == 'J'){
+         
+      }
+      else if(type == 'R'){
+         
+      }
+      else if(type == 'F'){
+         
+      }
    
 }
 
 void wb(){
    
-   
+         if(type == 'I'){
+         
+      }
+      else if(type == 'J'){
+         
+      }
+      else if(type == 'R'){
+         
+      }
+      else if(type == 'F'){
+         
+      }
    
 }
 
