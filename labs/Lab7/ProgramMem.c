@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "ProgramMem.h"
 
 char file[MAX_CHAR];

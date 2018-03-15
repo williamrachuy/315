@@ -1,7 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "PipeSupport.h"
+#include "ProgramMem.h"
+#include "CPU.h"
+#include "decoder.h"
 
+
+#define ZERO 0
+#define SAME 0
+#define TRUE 1
+#define FALSE 0
 
 //int fileLoaded = FALSE;
 //char file[MAX_CHAR];
@@ -22,6 +31,14 @@ void decodeFile(void) {
       i += WORD_SIZE;
    }
    printf("\n");
+}
+
+int runFile(){
+   
+   for(haltFlag = 0; haltFlag; stats.clocks++){
+      wb(); memory(); ex(); id(); ift();
+   }
+   
 }
 
          
@@ -87,7 +104,7 @@ int main (const int argc, const char **argv) {
                printf("   %s\n\n", retStr);
                
                // Execute instruction once and print out stats and registers
-               execInstruction(mem[pc]);
+               //execInstruction(mem[pc]);
                printStatistics();
                printRegisters();
             }
